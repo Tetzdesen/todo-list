@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Tarefas</title>
+	<link rel="stylesheet" href="css/styles.css">
+	<script type="module" src="js/app.js"></script>
+</head>
+<body>
+	<main class="page">
+		<header class="masthead">
+			<p id="today" class="today"></p>
+			<h1>Tarefas</h1>
+		</header>
+
+		<div id="error-banner" class="error-banner" role="alert" hidden>
+			<span id="error-message"></span>
+			<button type="button" id="error-close" class="link-button" aria-label="Fechar aviso">fechar</button>
+		</div>
+
+		<form id="create-form" class="composer" novalidate>
+			<h2 class="visually-hidden">Nova tarefa</h2>
+			<div class="field">
+				<label for="create-title" class="visually-hidden">Título</label>
+				<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Escreva uma tarefa…">
+				<p class="field-error" data-error-for="title"></p>
+			</div>
+			<div class="field">
+				<label for="create-description" class="visually-hidden">Descrição (opcional)</label>
+				<textarea id="create-description" name="description" rows="1" class="composer-description" placeholder="Detalhes, se quiser"></textarea>
+				<p class="field-error" data-error-for="description"></p>
+			</div>
+			<div class="composer-footer">
+				<span class="hint"><kbd>Enter</kbd> no título para adicionar</span>
+				<button type="submit" class="ink-button">Adicionar</button>
+			</div>
+		</form>
+
+		<section class="sheet" aria-labelledby="list-heading">
+			<div class="sheet-header">
+				<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
+				<nav class="tabs" aria-label="Filtrar tarefas">
+					<button type="button" class="tab" data-filter="all" aria-pressed="true">Todas</button>
+					<button type="button" class="tab" data-filter="pending" aria-pressed="false">Pendentes</button>
+					<button type="button" class="tab" data-filter="completed" aria-pressed="false">Concluídas</button>
+				</nav>
+				<p id="counter" class="counter" aria-live="polite"></p>
+			</div>
+
+			<ul id="todo-list" class="todo-list"></ul>
+			<p id="empty-message" class="empty-message" hidden>Nada por aqui.</p>
+		</section>
+	</main>
+
+	<template id="todo-template">
+		<li class="todo" data-mode="view">
+			<div class="todo-view">
+				<input type="checkbox" class="todo-toggle">
+				<div class="todo-content">
+					<p class="todo-title"></p>
+					<p class="todo-description"></p>
+				</div>
+				<time class="todo-date"></time>
+				<div class="todo-actions">
+					<button type="button" class="link-button" data-action="edit">editar</button>
+					<button type="button" class="link-button danger" data-action="delete">remover</button>
+				</div>
+			</div>
+
+			<form class="todo-edit" novalidate>
+				<div class="field">
+					<label>
+						<span class="visually-hidden">Título</span>
+						<input name="title" type="text" class="edit-title" autocomplete="off">
+					</label>
+					<p class="field-error" data-error-for="title"></p>
+				</div>
+				<div class="field">
+					<label>
+						<span class="visually-hidden">Descrição</span>
+						<textarea name="description" rows="2" class="edit-description" placeholder="Detalhes, se quiser"></textarea>
+					</label>
+					<p class="field-error" data-error-for="description"></p>
+				</div>
+				<div class="todo-actions always">
+					<button type="submit" class="ink-button small">Salvar</button>
+					<button type="button" class="link-button" data-action="cancel-edit">cancelar</button>
+				</div>
+			</form>
+
+			<div class="todo-confirm">
+				<p>Remover “<span class="todo-confirm-title"></span>”?</p>
+				<div class="todo-actions always">
+					<button type="button" class="ink-button small danger" data-action="confirm-delete">Sim</button>
+					<button type="button" class="link-button" data-action="cancel-delete">Não</button>
+				</div>
+			</div>
+		</li>
+	</template>
+</body>
+</html>
