@@ -38,3 +38,7 @@ Thumbs.db
 
 ### Logs ###
 *.log
+
+### Arquivos locais (Claude Code e OpenSpec) ###
+.claude/
+openspec/
