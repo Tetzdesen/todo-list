@@ -5,7 +5,7 @@ const weekdayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
 const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' });
 
 const EMPTY_MESSAGES = {
-	all: 'Folha em branco. Anote a primeira coisa a fazer.',
+	all: 'Nenhuma tarefa por aqui. Que tal começar pela primeira?',
 	pending: 'Nada pendente. Pode descansar.',
 	completed: 'Nada feito ainda — mas o dia não acabou.',
 };
@@ -22,8 +22,10 @@ const state = {
 
 const elements = {
 	createForm: document.querySelector('#create-form'),
-	// pendentes e feitas ficam em listas separadas; os eventos são tratados na folha que contém as duas
-	sheet: document.querySelector('.sheet'),
+	// pendentes e feitas ficam em listas separadas; os eventos são tratados na área que contém as duas
+	board: document.querySelector('.board'),
+	greeting: document.querySelector('#greeting'),
+	summary: document.querySelector('#summary'),
 	list: document.querySelector('#todo-list'),
 	doneSection: document.querySelector('#done-section'),
 	doneList: document.querySelector('#done-list'),
@@ -160,6 +162,7 @@ function render() {
 	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
 
 	renderProgress(pending.length, done.length);
+	elements.summary.textContent = describeSummary(pending.length, done.length);
 	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
 	for (const target of elements.filterCounts) {
 		target.textContent = counts[target.dataset.countFor];
@@ -190,6 +193,27 @@ function renderProgress(pendingCount, doneCount) {
 		return mark;
 	});
 	elements.tally.replaceChildren(...marks);
+}
+
+function describeSummary(pendingCount, doneCount) {
+	if (pendingCount + doneCount === 0) {
+		return 'Sua lista está vazia.';
+	}
+	if (pendingCount === 0) {
+		return 'Nada pendente. Bom trabalho.';
+	}
+	return `Você tem ${plural(pendingCount, 'tarefa pendente', 'tarefas pendentes')}.`;
+}
+
+function greetingFor(date) {
+	const hour = date.getHours();
+	if (hour >= 5 && hour < 12) {
+		return 'Bom dia.';
+	}
+	if (hour >= 12 && hour < 18) {
+		return 'Boa tarde.';
+	}
+	return 'Boa noite.';
 }
 
 function startOfDay(date) {
@@ -302,7 +326,7 @@ function startEdit(id) {
 	state.editingId = id;
 	state.confirmingId = null;
 	render();
-	elements.sheet.querySelector(`[data-id="${id}"] input[name="title"]`).focus();
+	elements.board.querySelector(`[data-id="${id}"] input[name="title"]`).focus();
 }
 
 function setConfirming(id) {
@@ -326,7 +350,7 @@ for (const button of elements.filters) {
 	});
 }
 
-elements.sheet.addEventListener('click', (event) => {
+elements.board.addEventListener('click', (event) => {
 	const button = event.target.closest('[data-action]');
 	if (!button) {
 		return;
@@ -353,13 +377,13 @@ elements.sheet.addEventListener('click', (event) => {
 	}
 });
 
-elements.sheet.addEventListener('change', (event) => {
+elements.board.addEventListener('change', (event) => {
 	if (event.target.matches('.todo-toggle')) {
 		toggleTodo(Number(event.target.closest('.todo').dataset.id));
 	}
 });
 
-elements.sheet.addEventListener('submit', (event) => {
+elements.board.addEventListener('submit', (event) => {
 	if (event.target.matches('.todo-edit')) {
 		event.preventDefault();
 		saveEdit(event.target, Number(event.target.closest('.todo').dataset.id));
@@ -385,4 +409,5 @@ const today = new Date();
 elements.day.textContent = today.getDate();
 elements.month.textContent = monthFormat.format(today);
 elements.weekday.textContent = weekdayFormat.format(today);
+elements.greeting.textContent = greetingFor(today);
 loadTodos();
