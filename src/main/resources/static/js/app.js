@@ -1,29 +1,40 @@
 const API_URL = '/api/todos';
 
-const todayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
+const monthFormat = new Intl.DateTimeFormat('pt-BR', { month: 'long' });
+const weekdayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
+const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' });
 
-const FILTER_PARAMS = {
-	all: '',
-	pending: '?completed=false',
-	completed: '?completed=true',
+const EMPTY_MESSAGES = {
+	all: 'Folha em branco. Anote a primeira coisa a fazer.',
+	pending: 'Nada pendente. Pode descansar.',
+	completed: 'Nada feito ainda — mas o dia não acabou.',
 };
 
-// Estado da interface: as tarefas sempre vêm da API; aqui fica só o que é da tela
+// Estado da interface: as tarefas sempre vêm da API; aqui fica só o que é da tela.
+// A lista inteira é carregada para que as contagens e o progresso fiquem corretos em qualquer filtro.
 const state = {
 	todos: [],
 	filter: 'all',
 	editingId: null,
 	confirmingId: null,
+	justCheckedId: null,
 };
 
 const elements = {
 	createForm: document.querySelector('#create-form'),
+	// pendentes e feitas ficam em listas separadas; os eventos são tratados na folha que contém as duas
+	sheet: document.querySelector('.sheet'),
 	list: document.querySelector('#todo-list'),
+	doneSection: document.querySelector('#done-section'),
+	doneList: document.querySelector('#done-list'),
 	emptyMessage: document.querySelector('#empty-message'),
-	filters: document.querySelectorAll('.tab'),
-	counter: document.querySelector('#counter'),
-	today: document.querySelector('#today'),
+	filters: document.querySelectorAll('.filter'),
+	filterCounts: document.querySelectorAll('[data-count-for]'),
+	progressLabel: document.querySelector('#progress-label'),
+	tally: document.querySelector('#tally'),
+	day: document.querySelector('#day'),
+	month: document.querySelector('#month'),
+	weekday: document.querySelector('#weekday'),
 	template: document.querySelector('#todo-template'),
 	errorBanner: document.querySelector('#error-banner'),
 	errorMessage: document.querySelector('#error-message'),
@@ -61,7 +72,7 @@ async function request(path, options = {}) {
 }
 
 const api = {
-	list: (filter) => request(API_URL + FILTER_PARAMS[filter]),
+	list: () => request(API_URL),
 	create: (data) => request(API_URL, { method: 'POST', body: JSON.stringify(data) }),
 	update: (id, data) => request(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 	toggle: (id) => request(`${API_URL}/${id}/toggle`, { method: 'PATCH' }),
@@ -122,7 +133,7 @@ async function handleError(error, form) {
 
 async function loadTodos({ keepBanner = false } = {}) {
 	try {
-		state.todos = await api.list(state.filter);
+		state.todos = await api.list();
 		if (!keepBanner) {
 			hideBanner();
 		}
@@ -133,36 +144,76 @@ async function loadTodos({ keepBanner = false } = {}) {
 }
 
 function render() {
-	const items = state.todos.map(createTodoElement);
-	elements.list.replaceChildren(...items);
-	elements.emptyMessage.hidden = state.todos.length > 0;
-	elements.counter.textContent = describeCount(state.todos);
+	const pending = state.todos.filter((todo) => !todo.completed);
+	const done = state.todos.filter((todo) => todo.completed);
 
+	// em "Todas", as feitas descem para um grupo próprio no fim da folha
+	const main = { all: pending, pending, completed: done }[state.filter];
+	const below = state.filter === 'all' ? done : [];
+
+	elements.list.replaceChildren(...main.map(createTodoElement));
+	elements.doneList.replaceChildren(...below.map(createTodoElement));
+	elements.doneSection.hidden = below.length === 0;
+
+	const isEmpty = main.length === 0 && below.length === 0;
+	elements.emptyMessage.hidden = !isEmpty;
+	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
+
+	renderProgress(pending.length, done.length);
+	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
+	for (const target of elements.filterCounts) {
+		target.textContent = counts[target.dataset.countFor];
+	}
 	for (const button of elements.filters) {
 		button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter));
 	}
+	state.justCheckedId = null;
 }
 
 function plural(count, singular, pluralForm) {
 	return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
-function describeCount(todos) {
-	const done = todos.filter((todo) => todo.completed).length;
-	switch (state.filter) {
-		case 'pending':
-			return plural(todos.length, 'pendente', 'pendentes');
-		case 'completed':
-			return plural(todos.length, 'concluída', 'concluídas');
-		default:
-			return todos.length === 0 ? '' : `${plural(todos.length, 'tarefa', 'tarefas')} · ${plural(done, 'feita', 'feitas')}`;
+function renderProgress(pendingCount, doneCount) {
+	const total = pendingCount + doneCount;
+	if (total === 0) {
+		elements.progressLabel.textContent = 'Nenhuma tarefa ainda';
+	} else if (pendingCount === 0) {
+		elements.progressLabel.textContent = 'Tudo feito por hoje';
+	} else {
+		elements.progressLabel.textContent = `${doneCount} de ${plural(total, 'feita', 'feitas')}`;
 	}
+
+	const marks = Array.from({ length: total }, (_, index) => {
+		const mark = document.createElement('span');
+		mark.classList.toggle('done', index < doneCount);
+		return mark;
+	});
+	elements.tally.replaceChildren(...marks);
+}
+
+function startOfDay(date) {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// "hoje", "ontem" ou "18 out"
+function describeDate(isoDate) {
+	const date = new Date(isoDate);
+	const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+	if (days === 0) {
+		return 'hoje';
+	}
+	if (days === 1) {
+		return 'ontem';
+	}
+	return itemDateFormat.format(date).replace(' de ', ' ').replace('.', '');
 }
 
 function createTodoElement(todo) {
 	const item = elements.template.content.firstElementChild.cloneNode(true);
 	item.dataset.id = todo.id;
 	item.classList.toggle('completed', todo.completed);
+	item.classList.toggle('just-checked', todo.id === state.justCheckedId);
 
 	// textContent garante que o texto do usuário nunca é interpretado como HTML
 	item.querySelector('.todo-title').textContent = todo.title;
@@ -171,8 +222,7 @@ function createTodoElement(todo) {
 
 	const date = item.querySelector('.todo-date');
 	date.dateTime = todo.createdAt;
-	// "19 de out." -> "19 out"
-	date.textContent = itemDateFormat.format(new Date(todo.createdAt)).replace(' de ', ' ').replace('.', '');
+	date.textContent = describeDate(todo.createdAt);
 
 	const toggle = item.querySelector('.todo-toggle');
 	toggle.checked = todo.completed;
@@ -230,7 +280,8 @@ async function saveEdit(form, id) {
 
 async function toggleTodo(id) {
 	try {
-		await api.toggle(id);
+		const toggled = await api.toggle(id);
+		state.justCheckedId = toggled?.completed ? id : null;
 		await loadTodos();
 	} catch (error) {
 		await handleError(error);
@@ -251,7 +302,7 @@ function startEdit(id) {
 	state.editingId = id;
 	state.confirmingId = null;
 	render();
-	elements.list.querySelector(`[data-id="${id}"] input[name="title"]`).focus();
+	elements.sheet.querySelector(`[data-id="${id}"] input[name="title"]`).focus();
 }
 
 function setConfirming(id) {
@@ -275,7 +326,7 @@ for (const button of elements.filters) {
 	});
 }
 
-elements.list.addEventListener('click', (event) => {
+elements.sheet.addEventListener('click', (event) => {
 	const button = event.target.closest('[data-action]');
 	if (!button) {
 		return;
@@ -302,18 +353,36 @@ elements.list.addEventListener('click', (event) => {
 	}
 });
 
-elements.list.addEventListener('change', (event) => {
+elements.sheet.addEventListener('change', (event) => {
 	if (event.target.matches('.todo-toggle')) {
 		toggleTodo(Number(event.target.closest('.todo').dataset.id));
 	}
 });
 
-elements.list.addEventListener('submit', (event) => {
+elements.sheet.addEventListener('submit', (event) => {
 	if (event.target.matches('.todo-edit')) {
 		event.preventDefault();
 		saveEdit(event.target, Number(event.target.closest('.todo').dataset.id));
 	}
 });
 
-elements.today.textContent = todayFormat.format(new Date());
+// N (ou /) começa uma tarefa nova; Esc cancela a edição ou a remoção em andamento
+document.addEventListener('keydown', (event) => {
+	const typing = event.target.closest('input, textarea, [contenteditable]');
+	if (event.key === 'Escape' && (state.editingId !== null || state.confirmingId !== null)) {
+		state.editingId = null;
+		state.confirmingId = null;
+		render();
+		return;
+	}
+	if (!typing && !event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'n' || event.key === '/')) {
+		event.preventDefault();
+		elements.createForm.elements.title.focus();
+	}
+});
+
+const today = new Date();
+elements.day.textContent = today.getDate();
+elements.month.textContent = monthFormat.format(today);
+elements.weekday.textContent = weekdayFormat.format(today);
 loadTodos();

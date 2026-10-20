@@ -8,63 +8,95 @@
 	<script type="module" src="js/app.js"></script>
 </head>
 <body>
-	<main class="page">
-		<header class="masthead">
-			<p id="today" class="today"></p>
-			<h1>Tarefas</h1>
-		</header>
+	<div class="desk">
+		<aside class="rail">
+			<h1 class="rail-title">Tarefas</h1>
 
-		<div id="error-banner" class="error-banner" role="alert" hidden>
-			<span id="error-message"></span>
-			<button type="button" id="error-close" class="link-button" aria-label="Fechar aviso">fechar</button>
-		</div>
+			<p class="dateblock">
+				<span id="day" class="day"></span>
+				<span class="dateblock-text">
+					<span id="month" class="month"></span>
+					<span id="weekday" class="weekday"></span>
+				</span>
+			</p>
 
-		<form id="create-form" class="composer" novalidate>
-			<h2 class="visually-hidden">Nova tarefa</h2>
-			<div class="field">
-				<label for="create-title" class="visually-hidden">Título</label>
-				<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Escreva uma tarefa…">
-				<p class="field-error" data-error-for="title"></p>
+			<div class="progress">
+				<p id="progress-label" class="progress-label" aria-live="polite"></p>
+				<div id="tally" class="tally" aria-hidden="true"></div>
 			</div>
-			<div class="field">
-				<label for="create-description" class="visually-hidden">Descrição (opcional)</label>
-				<textarea id="create-description" name="description" rows="1" class="composer-description" placeholder="Detalhes, se quiser"></textarea>
-				<p class="field-error" data-error-for="description"></p>
-			</div>
-			<div class="composer-footer">
-				<span class="hint"><kbd>Enter</kbd> no título para adicionar</span>
-				<button type="submit" class="ink-button">Adicionar</button>
-			</div>
-		</form>
 
-		<section class="sheet" aria-labelledby="list-heading">
-			<div class="sheet-header">
+			<nav class="filters" aria-label="Filtrar tarefas">
+				<button type="button" class="filter" data-filter="all" aria-pressed="true">Todas <span class="filter-count" data-count-for="all"></span></button>
+				<button type="button" class="filter" data-filter="pending" aria-pressed="false">Pendentes <span class="filter-count" data-count-for="pending"></span></button>
+				<button type="button" class="filter" data-filter="completed" aria-pressed="false">Feitas <span class="filter-count" data-count-for="completed"></span></button>
+			</nav>
+
+			<p class="rail-hint"><kbd>N</kbd> nova tarefa · <kbd>Esc</kbd> cancela</p>
+		</aside>
+
+		<main class="sheet">
+			<div id="error-banner" class="error-banner" role="alert" hidden>
+				<span id="error-message"></span>
+				<button type="button" id="error-close" class="link-button" aria-label="Fechar aviso">fechar</button>
+			</div>
+
+			<form id="create-form" class="composer" novalidate>
+				<h2 class="visually-hidden">Nova tarefa</h2>
+				<span class="composer-mark" aria-hidden="true">+</span>
+				<div class="composer-body">
+					<div class="field">
+						<label for="create-title" class="visually-hidden">Título</label>
+						<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="O que precisa ser feito?">
+						<p class="field-error" data-error-for="title"></p>
+					</div>
+					<div class="composer-extra">
+						<div class="composer-extra-inner">
+							<div class="field">
+								<label for="create-description" class="visually-hidden">Descrição (opcional)</label>
+								<textarea id="create-description" name="description" rows="1" class="composer-description" placeholder="Anotação (opcional)"></textarea>
+								<p class="field-error" data-error-for="description"></p>
+							</div>
+							<div class="composer-footer">
+								<span class="hint"><kbd>Enter</kbd> no título já adiciona</span>
+								<button type="submit" class="ink-button">Anotar</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</form>
+
+			<section aria-labelledby="list-heading">
 				<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
-				<nav class="tabs" aria-label="Filtrar tarefas">
-					<button type="button" class="tab" data-filter="all" aria-pressed="true">Todas</button>
-					<button type="button" class="tab" data-filter="pending" aria-pressed="false">Pendentes</button>
-					<button type="button" class="tab" data-filter="completed" aria-pressed="false">Concluídas</button>
-				</nav>
-				<p id="counter" class="counter" aria-live="polite"></p>
-			</div>
+				<ul id="todo-list" class="todo-list"></ul>
+				<p id="empty-message" class="empty-message" hidden></p>
+			</section>
 
-			<ul id="todo-list" class="todo-list"></ul>
-			<p id="empty-message" class="empty-message" hidden>Nada por aqui.</p>
-		</section>
-	</main>
+			<section id="done-section" class="done-section" aria-labelledby="done-heading" hidden>
+				<h2 id="done-heading" class="done-heading">Feitas</h2>
+				<ul id="done-list" class="todo-list"></ul>
+			</section>
+		</main>
+	</div>
 
 	<template id="todo-template">
 		<li class="todo" data-mode="view">
 			<div class="todo-view">
-				<input type="checkbox" class="todo-toggle">
+				<label class="check">
+					<input type="checkbox" class="todo-toggle">
+					<svg class="check-mark" viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M4.2 10.6c1.5 1 2.7 2.4 3.7 4.1C9.8 10.4 12.5 7 16.4 4.3"/>
+					</svg>
+				</label>
 				<div class="todo-content">
 					<p class="todo-title"></p>
 					<p class="todo-description"></p>
 				</div>
-				<time class="todo-date"></time>
-				<div class="todo-actions">
-					<button type="button" class="link-button" data-action="edit">editar</button>
-					<button type="button" class="link-button danger" data-action="delete">remover</button>
+				<div class="todo-meta">
+					<time class="todo-date"></time>
+					<div class="todo-actions">
+						<button type="button" class="link-button" data-action="edit">editar</button>
+						<button type="button" class="link-button danger" data-action="delete">apagar</button>
+					</div>
 				</div>
 			</div>
 
@@ -79,7 +111,7 @@
 				<div class="field">
 					<label>
 						<span class="visually-hidden">Descrição</span>
-						<textarea name="description" rows="2" class="edit-description" placeholder="Detalhes, se quiser"></textarea>
+						<textarea name="description" rows="2" class="edit-description" placeholder="Anotação (opcional)"></textarea>
 					</label>
 					<p class="field-error" data-error-for="description"></p>
 				</div>
@@ -90,10 +122,10 @@
 			</form>
 
 			<div class="todo-confirm">
-				<p>Remover “<span class="todo-confirm-title"></span>”?</p>
+				<p>Apagar “<span class="todo-confirm-title"></span>”? Não dá pra desfazer.</p>
 				<div class="todo-actions always">
-					<button type="button" class="ink-button small danger" data-action="confirm-delete">Sim</button>
-					<button type="button" class="link-button" data-action="cancel-delete">Não</button>
+					<button type="button" class="ink-button small danger" data-action="confirm-delete">Apagar</button>
+					<button type="button" class="link-button" data-action="cancel-delete">deixa</button>
 				</div>
 			</div>
 		</li>
