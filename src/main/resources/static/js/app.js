@@ -1,17 +1,21 @@
 const API_URL = '/api/todos';
 
-const monthFormat = new Intl.DateTimeFormat('pt-BR', { month: 'long' });
-const weekdayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
-const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' });
+const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
+
+const VIEW_TITLES = {
+	all: 'Todas',
+	pending: 'Pendentes',
+	completed: 'Feitas',
+};
 
 const EMPTY_MESSAGES = {
-	all: 'Nenhuma tarefa por aqui. Que tal começar pela primeira?',
-	pending: 'Nada pendente. Pode descansar.',
-	completed: 'Nada feito ainda — mas o dia não acabou.',
+	all: 'Nenhuma tarefa ainda.',
+	pending: 'Nada pendente.',
+	completed: 'Nenhuma tarefa feita ainda.',
 };
 
 // Estado da interface: as tarefas sempre vêm da API; aqui fica só o que é da tela.
-// A lista inteira é carregada para que as contagens e o progresso fiquem corretos em qualquer filtro.
+// A lista inteira é carregada para que as contagens da lateral fiquem corretas em qualquer filtro.
 const state = {
 	todos: [],
 	filter: 'all',
@@ -24,19 +28,14 @@ const elements = {
 	createForm: document.querySelector('#create-form'),
 	// pendentes e feitas ficam em listas separadas; os eventos são tratados na área que contém as duas
 	board: document.querySelector('.board'),
-	greeting: document.querySelector('#greeting'),
-	summary: document.querySelector('#summary'),
+	viewTitle: document.querySelector('#view-title'),
+	viewIcon: document.querySelector('#view-icon'),
 	list: document.querySelector('#todo-list'),
 	doneSection: document.querySelector('#done-section'),
 	doneList: document.querySelector('#done-list'),
 	emptyMessage: document.querySelector('#empty-message'),
 	filters: document.querySelectorAll('.filter'),
 	filterCounts: document.querySelectorAll('[data-count-for]'),
-	progressLabel: document.querySelector('#progress-label'),
-	tally: document.querySelector('#tally'),
-	day: document.querySelector('#day'),
-	month: document.querySelector('#month'),
-	weekday: document.querySelector('#weekday'),
 	template: document.querySelector('#todo-template'),
 	errorBanner: document.querySelector('#error-banner'),
 	errorMessage: document.querySelector('#error-message'),
@@ -161,76 +160,37 @@ function render() {
 	elements.emptyMessage.hidden = !isEmpty;
 	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
 
-	renderProgress(pending.length, done.length);
-	elements.summary.textContent = describeSummary(pending.length, done.length);
 	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
 	for (const target of elements.filterCounts) {
 		target.textContent = counts[target.dataset.countFor];
 	}
 	for (const button of elements.filters) {
-		button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter));
+		const selected = button.dataset.filter === state.filter;
+		button.setAttribute('aria-pressed', String(selected));
+		if (selected) {
+			// o título repete o ícone colorido da lista escolhida, como na lateral
+			elements.viewIcon.replaceChildren(button.querySelector('.list-icon').cloneNode(true));
+		}
 	}
+	elements.viewTitle.textContent = VIEW_TITLES[state.filter];
 	state.justCheckedId = null;
-}
-
-function plural(count, singular, pluralForm) {
-	return `${count} ${count === 1 ? singular : pluralForm}`;
-}
-
-function renderProgress(pendingCount, doneCount) {
-	const total = pendingCount + doneCount;
-	if (total === 0) {
-		elements.progressLabel.textContent = 'Nenhuma tarefa ainda';
-	} else if (pendingCount === 0) {
-		elements.progressLabel.textContent = 'Tudo feito por hoje';
-	} else {
-		elements.progressLabel.textContent = `${doneCount} de ${plural(total, 'feita', 'feitas')}`;
-	}
-
-	const marks = Array.from({ length: total }, (_, index) => {
-		const mark = document.createElement('span');
-		mark.classList.toggle('done', index < doneCount);
-		return mark;
-	});
-	elements.tally.replaceChildren(...marks);
-}
-
-function describeSummary(pendingCount, doneCount) {
-	if (pendingCount + doneCount === 0) {
-		return 'Sua lista está vazia.';
-	}
-	if (pendingCount === 0) {
-		return 'Nada pendente. Bom trabalho.';
-	}
-	return `Você tem ${plural(pendingCount, 'tarefa pendente', 'tarefas pendentes')}.`;
-}
-
-function greetingFor(date) {
-	const hour = date.getHours();
-	if (hour >= 5 && hour < 12) {
-		return 'Bom dia.';
-	}
-	if (hour >= 12 && hour < 18) {
-		return 'Boa tarde.';
-	}
-	return 'Boa noite.';
 }
 
 function startOfDay(date) {
 	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-// "hoje", "ontem" ou "18 out"
-function describeDate(isoDate) {
+// "Criada hoje", "Criada ontem" ou "Criada em 18 de outubro"
+function describeCreation(isoDate) {
 	const date = new Date(isoDate);
 	const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
 	if (days === 0) {
-		return 'hoje';
+		return 'Criada hoje';
 	}
 	if (days === 1) {
-		return 'ontem';
+		return 'Criada ontem';
 	}
-	return itemDateFormat.format(date).replace(' de ', ' ').replace('.', '');
+	return `Criada em ${itemDateFormat.format(date)}`;
 }
 
 function createTodoElement(todo) {
@@ -241,12 +201,10 @@ function createTodoElement(todo) {
 
 	// textContent garante que o texto do usuário nunca é interpretado como HTML
 	item.querySelector('.todo-title').textContent = todo.title;
-	item.querySelector('.todo-description').textContent = todo.description ?? '';
+	// SVG não tem a propriedade hidden; o atributo precisa ser definido diretamente
+	item.querySelector('.todo-note').toggleAttribute('hidden', !todo.description);
+	item.querySelector('.todo-created').textContent = describeCreation(todo.createdAt);
 	item.querySelector('.todo-confirm-title').textContent = todo.title;
-
-	const date = item.querySelector('.todo-date');
-	date.dateTime = todo.createdAt;
-	date.textContent = describeDate(todo.createdAt);
 
 	const toggle = item.querySelector('.todo-toggle');
 	toggle.checked = todo.completed;
@@ -390,24 +348,23 @@ elements.board.addEventListener('submit', (event) => {
 	}
 });
 
-// N (ou /) começa uma tarefa nova; Esc cancela a edição ou a remoção em andamento
+// N (ou /) começa uma tarefa nova; Esc fecha a tarefa aberta, a remoção em andamento ou a nova tarefa
 document.addEventListener('keydown', (event) => {
-	const typing = event.target.closest('input, textarea, [contenteditable]');
-	if (event.key === 'Escape' && (state.editingId !== null || state.confirmingId !== null)) {
-		state.editingId = null;
-		state.confirmingId = null;
-		render();
+	if (event.key === 'Escape') {
+		if (state.editingId !== null || state.confirmingId !== null) {
+			state.editingId = null;
+			state.confirmingId = null;
+			render();
+		} else if (elements.createForm.contains(document.activeElement)) {
+			document.activeElement.blur();
+		}
 		return;
 	}
+	const typing = event.target instanceof Element && event.target.closest('input, textarea, [contenteditable]');
 	if (!typing && !event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'n' || event.key === '/')) {
 		event.preventDefault();
 		elements.createForm.elements.title.focus();
 	}
 });
 
-const today = new Date();
-elements.day.textContent = today.getDate();
-elements.month.textContent = monthFormat.format(today);
-elements.weekday.textContent = weekdayFormat.format(today);
-elements.greeting.textContent = greetingFor(today);
 loadTodos();

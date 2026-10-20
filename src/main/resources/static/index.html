@@ -6,80 +6,74 @@
 	<title>Tarefas</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 	<link rel="stylesheet" href="css/styles.css">
 	<script type="module" src="js/app.js"></script>
 </head>
 <body>
-	<div class="shell">
-		<aside class="rail">
-			<h1 class="brand">
-				<svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
-					<rect width="24" height="24" rx="7"/>
-					<path d="M7 12.5l3.2 3.2L17 8.8"/>
-				</svg>
-				Tarefas
-			</h1>
+	<div class="window">
+		<aside class="sidebar">
+			<h1 class="visually-hidden">Tarefas</h1>
 
-			<p class="dateblock">
-				<span id="day" class="day"></span>
-				<span class="dateblock-text">
-					<span id="month" class="month"></span>
-					<span id="weekday" class="weekday"></span>
-				</span>
-			</p>
-
-			<div class="progress">
-				<p id="progress-label" class="progress-label" aria-live="polite"></p>
-				<div id="tally" class="tally" aria-hidden="true"></div>
-			</div>
-
-			<nav class="filters" aria-label="Filtrar tarefas">
-				<button type="button" class="filter" data-filter="all" aria-pressed="true">Todas <span class="filter-count" data-count-for="all"></span></button>
-				<button type="button" class="filter" data-filter="pending" aria-pressed="false">Pendentes <span class="filter-count" data-count-for="pending"></span></button>
-				<button type="button" class="filter" data-filter="completed" aria-pressed="false">Feitas <span class="filter-count" data-count-for="completed"></span></button>
+			<nav class="filters" aria-label="Listas">
+				<button type="button" class="filter" data-filter="all" aria-pressed="true">
+					<svg class="list-icon icon-all" viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M3 11.5V15a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 17 15v-3.5l-2.4-6.3A1.5 1.5 0 0 0 13.2 4.2H6.8a1.5 1.5 0 0 0-1.4 1L3 11.5Zm0 0h4l1 2h4l1-2h4"/>
+					</svg>
+					<span class="filter-label">Todas</span>
+					<span class="filter-count" data-count-for="all"></span>
+				</button>
+				<button type="button" class="filter" data-filter="pending" aria-pressed="false">
+					<svg class="list-icon icon-pending" viewBox="0 0 20 20" aria-hidden="true">
+						<path d="m10 2.8 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7L10 2.8Z"/>
+					</svg>
+					<span class="filter-label">Pendentes</span>
+					<span class="filter-count" data-count-for="pending"></span>
+				</button>
+				<button type="button" class="filter" data-filter="completed" aria-pressed="false">
+					<svg class="list-icon icon-completed" viewBox="0 0 20 20" aria-hidden="true">
+						<rect x="3" y="3" width="14" height="14" rx="3.5"/>
+						<path class="icon-check" d="m6.8 10.2 2.2 2.2 4.2-4.6"/>
+					</svg>
+					<span class="filter-label">Feitas</span>
+					<span class="filter-count" data-count-for="completed"></span>
+				</button>
 			</nav>
 
-			<footer class="rail-footer">
-				<p class="rail-hint"><kbd>N</kbd> nova tarefa · <kbd>Esc</kbd> cancela</p>
-				<nav class="rail-links" aria-label="Sobre o projeto">
-					<a href="swagger-ui.html">Documentação da API</a>
-					<a href="https://github.com/Tetzdesen/todo-list" target="_blank" rel="noopener">Código no GitHub</a>
-				</nav>
+			<footer class="sidebar-footer">
+				<a href="swagger-ui.html">API (Swagger)</a>
+				<a href="https://github.com/Tetzdesen/todo-list" target="_blank" rel="noopener">GitHub</a>
 			</footer>
 		</aside>
 
 		<main class="board">
 			<header class="board-header">
-				<h2 id="greeting" class="greeting"></h2>
-				<p id="summary" class="summary"></p>
+				<h2 class="view-title"><span id="view-icon" class="view-icon"></span><span id="view-title"></span></h2>
 			</header>
 
 			<div id="error-banner" class="error-banner" role="alert" hidden>
 				<span id="error-message"></span>
-				<button type="button" id="error-close" class="link-button" aria-label="Fechar aviso">fechar</button>
+				<button type="button" id="error-close" class="text-button" aria-label="Fechar aviso">Fechar</button>
 			</div>
 
 			<form id="create-form" class="composer" novalidate>
 				<h2 class="visually-hidden">Nova tarefa</h2>
-				<span class="composer-mark" aria-hidden="true">
-					<svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg>
-				</span>
+				<span class="composer-box" aria-hidden="true"></span>
 				<div class="composer-body">
 					<div class="field">
 						<label for="create-title" class="visually-hidden">Título</label>
-						<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Adicionar uma tarefa">
+						<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Nova tarefa">
 						<p class="field-error" data-error-for="title"></p>
 					</div>
 					<div class="composer-extra">
 						<div class="composer-extra-inner">
 							<div class="field">
-								<label for="create-description" class="visually-hidden">Descrição (opcional)</label>
-								<textarea id="create-description" name="description" rows="1" class="composer-description" placeholder="Anotação (opcional)"></textarea>
+								<label for="create-description" class="visually-hidden">Notas (opcional)</label>
+								<textarea id="create-description" name="description" rows="1" class="composer-description" placeholder="Notas"></textarea>
 								<p class="field-error" data-error-for="description"></p>
 							</div>
-							<div class="composer-footer">
-								<span class="hint"><kbd>Enter</kbd> no título já adiciona</span>
+							<div class="card-footer">
+								<span class="hint"><kbd>Enter</kbd> para salvar</span>
 								<button type="submit" class="primary-button">Adicionar</button>
 							</div>
 						</div>
@@ -87,13 +81,13 @@
 				</div>
 			</form>
 
-			<section class="group" aria-labelledby="list-heading">
+			<section aria-labelledby="list-heading">
 				<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
 				<ul id="todo-list" class="todo-list"></ul>
 				<p id="empty-message" class="empty-message" hidden></p>
 			</section>
 
-			<section id="done-section" class="group done-section" aria-labelledby="done-heading" hidden>
+			<section id="done-section" class="done-section" aria-labelledby="done-heading" hidden>
 				<h2 id="done-heading" class="group-heading">Feitas</h2>
 				<ul id="done-list" class="todo-list"></ul>
 			</section>
@@ -105,21 +99,16 @@
 			<div class="todo-view">
 				<label class="check">
 					<input type="checkbox" class="todo-toggle">
-					<svg class="check-mark" viewBox="0 0 20 20" aria-hidden="true">
-						<path d="M5.5 10.4l3 3 6-6.6"/>
+					<svg class="check-mark" viewBox="0 0 14 14" aria-hidden="true">
+						<path d="m3.6 7.2 2.3 2.3 4.5-5"/>
 					</svg>
 				</label>
-				<div class="todo-content">
-					<p class="todo-title"></p>
-					<p class="todo-description"></p>
-				</div>
-				<div class="todo-meta">
-					<time class="todo-date"></time>
-					<div class="todo-actions">
-						<button type="button" class="link-button" data-action="edit">editar</button>
-						<button type="button" class="link-button danger" data-action="delete">apagar</button>
-					</div>
-				</div>
+				<button type="button" class="todo-open" data-action="edit">
+					<span class="todo-title"></span>
+					<svg class="todo-note" viewBox="0 0 14 14" aria-label="Tem notas" role="img">
+						<path d="M3.5 1.5h5l2.5 2.5v8.5h-7.5v-11ZM5.5 6.5h3.5M5.5 9h3.5"/>
+					</svg>
+				</button>
 			</div>
 
 			<form class="todo-edit" novalidate>
@@ -132,22 +121,28 @@
 				</div>
 				<div class="field">
 					<label>
-						<span class="visually-hidden">Descrição</span>
-						<textarea name="description" rows="2" class="edit-description" placeholder="Anotação (opcional)"></textarea>
+						<span class="visually-hidden">Notas</span>
+						<textarea name="description" rows="2" class="edit-description" placeholder="Notas"></textarea>
 					</label>
 					<p class="field-error" data-error-for="description"></p>
 				</div>
-				<div class="todo-actions always">
-					<button type="submit" class="primary-button small">Salvar</button>
-					<button type="button" class="link-button" data-action="cancel-edit">cancelar</button>
+				<div class="card-footer">
+					<span class="todo-created"></span>
+					<div class="card-actions">
+						<button type="button" class="icon-button" data-action="delete" aria-label="Apagar tarefa" title="Apagar">
+							<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg>
+						</button>
+						<button type="button" class="text-button" data-action="cancel-edit">Cancelar</button>
+						<button type="submit" class="primary-button">Salvar</button>
+					</div>
 				</div>
 			</form>
 
 			<div class="todo-confirm">
-				<p>Apagar “<span class="todo-confirm-title"></span>”? Não dá pra desfazer.</p>
-				<div class="todo-actions always">
-					<button type="button" class="primary-button small danger" data-action="confirm-delete">Apagar</button>
-					<button type="button" class="link-button" data-action="cancel-delete">manter</button>
+				<p>Apagar “<span class="todo-confirm-title"></span>”?</p>
+				<div class="card-actions">
+					<button type="button" class="text-button" data-action="cancel-delete">Cancelar</button>
+					<button type="button" class="primary-button danger" data-action="confirm-delete">Apagar</button>
 				</div>
 			</div>
 		</li>
