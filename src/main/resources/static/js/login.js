@@ -1,7 +1,7 @@
 import { clearFieldErrors, request, showFieldErrors } from './api.js';
 
 const elements = {
-	tabs: document.querySelectorAll('.auth-tab'),
+	switches: document.querySelectorAll('[data-switch-to]'),
 	loginForm: document.querySelector('#login-form'),
 	registerForm: document.querySelector('#register-form'),
 	google: document.querySelector('#google-login'),
@@ -22,17 +22,18 @@ function hideBanner() {
 	elements.errorMessage.textContent = '';
 }
 
-// ---------- Abas ----------
+// ---------- Entrar ou criar conta ----------
 
-function selectTab(selected) {
-	for (const tab of elements.tabs) {
-		const active = tab === selected;
-		tab.setAttribute('aria-selected', String(active));
-		tab.tabIndex = active ? 0 : -1;
-		document.getElementById(tab.getAttribute('aria-controls')).hidden = !active;
+// cada modo tem título, formulário e link de troca próprios; só os do modo escolhido ficam visíveis
+function showMode(mode) {
+	for (const name of ['login', 'register']) {
+		const active = name === mode;
+		document.getElementById(`${name}-panel`).hidden = !active;
+		document.getElementById(`${name}-form`).hidden = !active;
+		document.getElementById(`switch-to-${name}`).hidden = active;
 	}
 	hideBanner();
-	const form = document.getElementById(selected.getAttribute('aria-controls'));
+	const form = document.getElementById(`${mode}-form`);
 	clearFieldErrors(form);
 	form.querySelector('input').focus();
 }
@@ -69,8 +70,8 @@ async function submit(form, path, data) {
 
 // ---------- Eventos ----------
 
-for (const tab of elements.tabs) {
-	tab.addEventListener('click', () => selectTab(tab));
+for (const button of elements.switches) {
+	button.addEventListener('click', () => showMode(button.dataset.switchTo));
 }
 
 elements.errorClose.addEventListener('click', hideBanner);

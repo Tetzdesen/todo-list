@@ -32,7 +32,7 @@ No console H2, use a JDBC URL `jdbc:h2:mem:tododb`, o usuário `sa` e a senha va
 Cada pessoa tem a própria lista de tarefas. Dá para entrar de duas formas:
 
 - **E-mail e senha**: crie a conta na aba **Criar conta** da tela de entrada (senha de 8 a 72 caracteres).
-- **Google**: o botão **Entrar com Google** só aparece quando as credenciais do Google estão configuradas (veja abaixo). Se o e-mail verificado do Google já tiver uma conta com senha, a conta passa a ser do Google e a senha deixa de valer: o cadastro com senha não confirma o e-mail, então quem o criou pode não ser o dono do endereço.
+- **Google**: o botão **Continuar com Google** só aparece quando as credenciais do Google estão configuradas (veja abaixo). Se o e-mail verificado do Google já tiver uma conta com senha, a conta passa a ser do Google e a senha deixa de valer: o cadastro com senha não confirma o e-mail, então quem o criou pode não ser o dono do endereço.
 
 Sem login, a interface leva para a tela de entrada e a API responde `401`. A interface web, o Swagger UI e o console H2 abrem sem login; só os dados exigem autenticação.
 
@@ -50,7 +50,7 @@ Sem essas variáveis, a aplicação funciona normalmente, só com e-mail e senha
 
 ### Interface web
 
-A página em `http://localhost:8080/` é feita em HTML, CSS e JavaScript puro, sem build. O próprio Spring Boot a serve a partir de `src/main/resources/static/`. Nela é possível listar as tarefas (nas listas **Todas / Pendentes / Feitas**), criar, editar, concluir/reabrir e apagar tarefas. Os erros de validação da API aparecem junto aos campos. A barra superior mostra o usuário logado, o botão **Sair** e o botão que troca entre o **modo claro** e o **modo noturno** (a escolha fica salva no navegador; sem escolha, vale o tema do sistema).
+A página em `http://localhost:8080/` é feita em HTML, CSS e JavaScript puro, sem build. O próprio Spring Boot a serve a partir de `src/main/resources/static/`. Nela é possível listar as tarefas (nos filtros **Todas / Pendentes / Concluídas**), criar, editar, concluir/reabrir e apagar tarefas. Os erros de validação da API aparecem junto aos campos. A barra superior mostra o usuário logado, o botão **Sair** e o botão que troca entre o **modo claro** e o **modo noturno** (a escolha fica salva no navegador; sem escolha, vale o tema do sistema).
 
 Com a aplicação rodando via `./mvnw spring-boot:run`, alterações nesses arquivos aparecem depois de recompilar (`./mvnw process-resources` ou o build da IDE) e recarregar a página.
 

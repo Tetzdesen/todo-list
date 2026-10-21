@@ -51,7 +51,7 @@ class WebUiTest {
 	void deveServirTelaDeEntradaSemLogin() throws Exception {
 		mockMvc.perform(get("/login.html"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(containsString("Entrar com Google")));
+				.andExpect(content().string(containsString("Continuar com Google")));
 	}
 
 	@Test

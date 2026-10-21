@@ -2,12 +2,14 @@ import { clearFieldErrors, request, showFieldErrors } from './api.js';
 
 const API_URL = '/api/todos';
 
-const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
+const shortDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' });
+const fullDateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+const todayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 const EMPTY_MESSAGES = {
-	all: 'Nenhuma tarefa ainda. Adicione a primeira acima.',
-	pending: 'Nada pendente. Tudo em dia!',
-	completed: 'Nenhuma tarefa feita ainda.',
+	all: 'Nenhuma tarefa ainda. Use o campo acima para adicionar a primeira.',
+	pending: 'Nenhuma tarefa pendente.',
+	completed: 'Nenhuma tarefa concluída.',
 };
 
 // Estado da interface: as tarefas sempre vêm da API; aqui fica só o que é da tela.
@@ -22,13 +24,18 @@ const state = {
 const elements = {
 	page: document.querySelector('.page'),
 	accountName: document.querySelector('#account-name'),
-	summary: document.querySelector('#summary'),
+	accountAvatar: document.querySelector('#account-avatar'),
+	today: document.querySelector('#today'),
+	progress: document.querySelector('#progress'),
+	progressLabel: document.querySelector('#progress-label'),
+	progressBar: document.querySelector('#progress-bar'),
 	logout: document.querySelector('#logout'),
 	createForm: document.querySelector('#create-form'),
 	// os eventos das tarefas são tratados na área principal, que contém a lista
 	board: document.querySelector('main'),
 	list: document.querySelector('#todo-list'),
 	emptyMessage: document.querySelector('#empty-message'),
+	emptyText: document.querySelector('#empty-text'),
 	filters: document.querySelectorAll('.filter'),
 	filterCounts: document.querySelectorAll('[data-count-for]'),
 	template: document.querySelector('#todo-template'),
@@ -71,6 +78,14 @@ function goToLogin() {
 function showUser(user) {
 	elements.accountName.textContent = user.name;
 	elements.accountName.title = user.email;
+	elements.accountAvatar.textContent = initials(user.name);
+}
+
+// "Ana Maria Souza" → "AS"; um nome só → a primeira letra
+function initials(name) {
+	const parts = name.trim().split(/\s+/);
+	const letters = parts.length > 1 ? parts[0][0] + parts.at(-1)[0] : parts[0][0];
+	return letters.toUpperCase();
 }
 
 async function logout() {
@@ -145,9 +160,9 @@ function render() {
 	elements.list.replaceChildren(...visible.map(createTodoElement));
 	elements.list.hidden = visible.length === 0;
 	elements.emptyMessage.hidden = visible.length > 0;
-	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
+	elements.emptyText.textContent = EMPTY_MESSAGES[state.filter];
 
-	elements.summary.textContent = describePending(pending.length, state.todos.length);
+	showProgress(done.length, state.todos.length);
 
 	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
 	for (const target of elements.filterCounts) {
@@ -158,32 +173,27 @@ function render() {
 	}
 }
 
-// subtítulo da página: "3 tarefas pendentes", "Tudo em dia" ou nada, quando ainda não há tarefas
-function describePending(pending, total) {
-	if (total === 0) {
-		return '';
-	}
-	if (pending === 0) {
-		return 'Tudo em dia. Nenhuma tarefa pendente.';
-	}
-	return pending === 1 ? '1 tarefa pendente' : `${pending} tarefas pendentes`;
+// "1 de 3 concluídas" com a barra proporcional; escondido enquanto não há tarefas
+function showProgress(done, total) {
+	elements.progress.hidden = total === 0;
+	elements.progressLabel.textContent = `${done} de ${total} ${total === 1 ? 'concluída' : 'concluídas'}`;
+	elements.progressBar.style.width = total === 0 ? '0' : `${(done / total) * 100}%`;
 }
 
 function startOfDay(date) {
 	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-// "Criada hoje", "Criada ontem" ou "Criada em 18 de outubro"
-function describeCreation(isoDate) {
-	const date = new Date(isoDate);
+// "Hoje", "Ontem" ou "18 de out." (a data completa fica na dica do elemento)
+function describeCreation(date) {
 	const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
 	if (days === 0) {
-		return 'Criada hoje';
+		return 'Hoje';
 	}
 	if (days === 1) {
-		return 'Criada ontem';
+		return 'Ontem';
 	}
-	return `Criada em ${itemDateFormat.format(date)}`;
+	return shortDateFormat.format(date);
 }
 
 function createTodoElement(todo) {
@@ -196,7 +206,11 @@ function createTodoElement(todo) {
 	const description = item.querySelector('.todo-description');
 	description.textContent = todo.description ?? '';
 	description.hidden = !todo.description;
-	item.querySelector('.todo-created').textContent = describeCreation(todo.createdAt);
+	const created = item.querySelector('.todo-created');
+	const createdAt = new Date(todo.createdAt);
+	created.dateTime = todo.createdAt;
+	created.textContent = describeCreation(createdAt);
+	created.title = `Criada em ${fullDateFormat.format(createdAt)}`;
 	item.querySelector('.todo-confirm-title').textContent = todo.title;
 
 	const toggle = item.querySelector('.todo-toggle');
@@ -363,6 +377,9 @@ document.addEventListener('keydown', (event) => {
 
 // A página só aparece depois de confirmar a sessão; sem ela, vai para a tela de entrada
 async function start() {
+	// "Terça-feira, 21 de outubro"
+	const today = todayFormat.format(new Date());
+	elements.today.textContent = today.charAt(0).toUpperCase() + today.slice(1);
 	try {
 		showUser(await api.me());
 	} catch (error) {
