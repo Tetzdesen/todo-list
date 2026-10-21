@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.exemplo.todo.dto.TodoCreateRequest;
 import com.exemplo.todo.dto.TodoResponse;
 import com.exemplo.todo.dto.TodoUpdateRequest;
+import com.exemplo.todo.security.AppUserPrincipal;
 import com.exemplo.todo.service.TodoService;
 
 import jakarta.validation.Valid;
@@ -33,34 +35,37 @@ public class TodoController {
 	}
 
 	@GetMapping
-	public List<TodoResponse> list(@RequestParam(required = false) Boolean completed) {
-		return service.list(completed);
+	public List<TodoResponse> list(@AuthenticationPrincipal AppUserPrincipal user,
+			@RequestParam(required = false) Boolean completed) {
+		return service.list(user.getId(), completed);
 	}
 
 	@GetMapping("/{id}")
-	public TodoResponse findById(@PathVariable Long id) {
-		return service.findById(id);
+	public TodoResponse findById(@AuthenticationPrincipal AppUserPrincipal user, @PathVariable Long id) {
+		return service.findById(user.getId(), id);
 	}
 
 	@PostMapping
-	public ResponseEntity<TodoResponse> create(@Valid @RequestBody TodoCreateRequest request) {
-		TodoResponse created = service.create(request);
+	public ResponseEntity<TodoResponse> create(@AuthenticationPrincipal AppUserPrincipal user,
+			@Valid @RequestBody TodoCreateRequest request) {
+		TodoResponse created = service.create(user.getId(), request);
 		return ResponseEntity.created(URI.create("/api/todos/" + created.id())).body(created);
 	}
 
 	@PutMapping("/{id}")
-	public TodoResponse update(@PathVariable Long id, @Valid @RequestBody TodoUpdateRequest request) {
-		return service.update(id, request);
+	public TodoResponse update(@AuthenticationPrincipal AppUserPrincipal user, @PathVariable Long id,
+			@Valid @RequestBody TodoUpdateRequest request) {
+		return service.update(user.getId(), id, request);
 	}
 
 	@PatchMapping("/{id}/toggle")
-	public TodoResponse toggle(@PathVariable Long id) {
-		return service.toggle(id);
+	public TodoResponse toggle(@AuthenticationPrincipal AppUserPrincipal user, @PathVariable Long id) {
+		return service.toggle(user.getId(), id);
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> delete(@PathVariable Long id) {
-		service.delete(id);
+	public ResponseEntity<Void> delete(@AuthenticationPrincipal AppUserPrincipal user, @PathVariable Long id) {
+		service.delete(user.getId(), id);
 		return ResponseEntity.noContent().build();
 	}
 

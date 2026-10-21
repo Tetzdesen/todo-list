@@ -47,4 +47,21 @@ class WebUiTest {
 				.andExpect(content().contentTypeCompatibleWith("text/css"));
 	}
 
+	@Test
+	void deveServirTelaDeEntradaSemLogin() throws Exception {
+		mockMvc.perform(get("/login.html"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Entrar com Google")));
+	}
+
+	@Test
+	void deveServirScriptsDaTelaDeEntradaSemLogin() throws Exception {
+		mockMvc.perform(get("/js/login.js"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith("text/javascript"));
+		mockMvc.perform(get("/js/api.js"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith("text/javascript"));
+	}
+
 }

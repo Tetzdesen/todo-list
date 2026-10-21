@@ -11,7 +11,8 @@
 	<script type="module" src="js/app.js"></script>
 </head>
 <body>
-	<div class="window">
+	<!-- só aparece depois que app.js confirma a sessão -->
+	<div class="window" hidden>
 		<aside class="sidebar">
 			<h1 class="visually-hidden">Tarefas</h1>
 
@@ -39,6 +40,12 @@
 					<span class="filter-count" data-count-for="completed"></span>
 				</button>
 			</nav>
+
+			<div class="account">
+				<span id="account-avatar" class="account-avatar" aria-hidden="true"></span>
+				<span id="account-name" class="account-name"></span>
+				<button type="button" id="logout" class="text-button">Sair</button>
+			</div>
 
 			<footer class="sidebar-footer">
 				<a href="swagger-ui.html">API (Swagger)</a>

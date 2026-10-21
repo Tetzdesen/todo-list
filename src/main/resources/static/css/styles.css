@@ -629,6 +629,218 @@ textarea:focus {
 	font-size: 14px;
 }
 
+/* ---------- Usuário logado, no pé da lateral ---------- */
+
+.account {
+	display: grid;
+	grid-template-columns: 24px 1fr auto;
+	align-items: center;
+	gap: 8px;
+	margin-top: auto;
+	padding: 8px 4px 8px 10px;
+	border-top: 1px solid var(--line);
+}
+
+.account-avatar {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--blue);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.account-name {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 13px;
+	font-weight: 500;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* o bloco do usuário já empurra o rodapé para baixo */
+.account + .sidebar-footer {
+	margin-top: 0;
+}
+
+/* ---------- Tela de entrada ---------- */
+
+.auth-page {
+	background: var(--sidebar);
+}
+
+.auth {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+	min-height: 100vh;
+	padding: 32px 16px;
+}
+
+.auth-card {
+	width: 100%;
+	max-width: 380px;
+	padding: 28px 28px 24px;
+	border-radius: 12px;
+	background: var(--card);
+	box-shadow: var(--card-shadow);
+}
+
+.auth-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 20px;
+	font-size: 24px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.auth-title .list-icon {
+	width: 26px;
+	height: 26px;
+}
+
+.auth-tabs {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2px;
+	margin-bottom: 20px;
+	padding: 2px;
+	border-radius: 8px;
+	background: var(--sidebar);
+}
+
+.auth-tab {
+	padding: 5px 10px;
+	border: none;
+	border-radius: 6px;
+	background: none;
+	color: var(--ink-soft);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.auth-tab[aria-selected="true"] {
+	background: var(--card);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+	color: var(--ink);
+}
+
+.auth-form {
+	display: grid;
+	gap: 14px;
+}
+
+.auth-label {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--ink-soft);
+	font-size: 13px;
+	font-weight: 500;
+}
+
+/* .auth-form na frente: vence a regra genérica de input[type="text"] usada na lista */
+.auth-form .auth-input {
+	display: block;
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+}
+
+.auth-form .auth-input:focus {
+	border-color: var(--blue);
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+
+.auth-form .field.invalid .auth-input {
+	border-color: var(--red);
+}
+
+.auth-hint {
+	margin: 4px 0 0;
+	color: var(--ink-faint);
+	font-size: 12px;
+}
+
+.auth-submit {
+	margin-top: 4px;
+	padding: 8px 14px;
+	font-size: 14px;
+}
+
+.auth-submit:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.auth-divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 18px 0;
+	color: var(--ink-faint);
+	font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+	content: "";
+	flex: 1;
+	border-top: 1px solid var(--line);
+}
+
+.google-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 8px 14px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	color: var(--ink);
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.google-button:hover {
+	background: var(--row-hover);
+}
+
+.google-button svg {
+	width: 18px;
+	height: 18px;
+}
+
+.auth-footer {
+	display: flex;
+	gap: 16px;
+}
+
+.auth-footer a {
+	color: var(--ink-faint);
+	font-size: 12px;
+	text-decoration: none;
+}
+
+.auth-footer a:hover {
+	color: var(--ink);
+}
+
 /* ---------- Telas de toque ---------- */
 
 @media (hover: none) {
@@ -694,5 +906,31 @@ textarea:focus {
 	.todo[data-mode="edit"] .todo-edit,
 	.todo[data-mode="confirm"] .todo-confirm {
 		padding-left: 14px;
+	}
+}
+
+/* Telas pequenas: o usuário ganha uma linha própria acima das abas, que continuam com a largura toda */
+@media (max-width: 760px) {
+	/* minmax(0, 1fr): a coluna nunca passa da largura da tela, mesmo que a barra não caiba */
+	.window {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sidebar {
+		flex-wrap: wrap;
+		row-gap: 6px;
+	}
+
+	.filters {
+		min-width: 0;
+	}
+
+	.account {
+		order: -1;
+		flex-basis: 100%;
+		margin: 0;
+		padding: 0 0 6px 4px;
+		border-top: none;
+		border-bottom: 1px solid var(--line);
 	}
 }

@@ -1,6 +1,5 @@
 package com.exemplo.todo.exception;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -8,6 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,6 +27,25 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(TodoNotFoundException.class)
 	public ResponseEntity<ErrorResponse> handleNotFound(TodoNotFoundException ex, HttpServletRequest request) {
 		return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
+	}
+
+	@ExceptionHandler(EmailAlreadyUsedException.class)
+	public ResponseEntity<ErrorResponse> handleEmailAlreadyUsed(EmailAlreadyUsedException ex,
+			HttpServletRequest request) {
+		return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+	}
+
+	// só o login autentica dentro de um controller; a mensagem não revela se o e-mail existe
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex,
+			HttpServletRequest request) {
+		return build(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos", request, null);
+	}
+
+	@ExceptionHandler(InvalidFieldException.class)
+	public ResponseEntity<ErrorResponse> handleInvalidField(InvalidFieldException ex, HttpServletRequest request) {
+		return build(HttpStatus.BAD_REQUEST, "Dados inválidos", request,
+				List.of(new FieldError(ex.getField(), ex.getMessage())));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -76,14 +95,8 @@ public class GlobalExceptionHandler {
 
 	private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request,
 			List<FieldError> fieldErrors) {
-		ErrorResponse body = new ErrorResponse(
-				Instant.now(),
-				status.value(),
-				status.getReasonPhrase(),
-				message,
-				request.getRequestURI(),
-				fieldErrors);
-		return ResponseEntity.status(status).body(body);
+		return ResponseEntity.status(status)
+				.body(ErrorResponse.of(status, message, request.getRequestURI(), fieldErrors));
 	}
 
 }

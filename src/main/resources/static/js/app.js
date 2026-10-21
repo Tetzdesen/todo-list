@@ -1,3 +1,5 @@
+import { clearFieldErrors, request, showFieldErrors } from './api.js';
+
 const API_URL = '/api/todos';
 
 const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
@@ -25,6 +27,10 @@ const state = {
 };
 
 const elements = {
+	window: document.querySelector('.window'),
+	accountAvatar: document.querySelector('#account-avatar'),
+	accountName: document.querySelector('#account-name'),
+	logout: document.querySelector('#logout'),
 	createForm: document.querySelector('#create-form'),
 	// pendentes e feitas ficam em listas separadas; os eventos são tratados na área que contém as duas
 	board: document.querySelector('.board'),
@@ -44,40 +50,14 @@ const elements = {
 
 // ---------- Comunicação com a API ----------
 
-class ApiError extends Error {
-	constructor(message, status, fieldErrors = []) {
-		super(message);
-		this.status = status;
-		this.fieldErrors = fieldErrors;
-	}
-}
-
-async function request(path, options = {}) {
-	const headers = options.body ? { 'Content-Type': 'application/json' } : {};
-	let response;
-	try {
-		response = await fetch(path, { ...options, headers });
-	} catch {
-		throw new ApiError('Não foi possível falar com o servidor. Verifique se a aplicação está rodando.', 0);
-	}
-
-	if (response.status === 204) {
-		return null;
-	}
-
-	const body = await response.json().catch(() => null);
-	if (!response.ok) {
-		throw new ApiError(body?.message ?? `Erro ${response.status}`, response.status, body?.fieldErrors ?? []);
-	}
-	return body;
-}
-
 const api = {
 	list: () => request(API_URL),
 	create: (data) => request(API_URL, { method: 'POST', body: JSON.stringify(data) }),
 	update: (id, data) => request(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 	toggle: (id) => request(`${API_URL}/${id}/toggle`, { method: 'PATCH' }),
 	remove: (id) => request(`${API_URL}/${id}`, { method: 'DELETE' }),
+	me: () => request('/api/auth/me'),
+	logout: () => request('/api/auth/logout', { method: 'POST' }),
 };
 
 // ---------- Mensagens de erro ----------
@@ -92,32 +72,51 @@ function hideBanner() {
 	elements.errorMessage.textContent = '';
 }
 
-function showFieldErrors(form, fieldErrors) {
-	clearFieldErrors(form);
-	for (const { field, message } of fieldErrors) {
-		const target = form.querySelector(`[data-error-for="${field}"]`);
-		if (target) {
-			// mais de um erro no mesmo campo: mostra todos, um por linha
-			target.textContent = target.textContent ? `${target.textContent}\n${message}` : message;
-			target.closest('.field').classList.add('invalid');
-		} else {
-			showBanner(message);
-		}
-	}
+// ---------- Sessão ----------
+
+// replace: voltar no navegador a partir da tela de entrada não traz de volta uma lista sem sessão
+function goToLogin() {
+	location.replace('login.html');
 }
 
-function clearFieldErrors(form) {
-	for (const target of form.querySelectorAll('[data-error-for]')) {
-		target.textContent = '';
-		target.closest('.field').classList.remove('invalid');
+function showUser(user) {
+	elements.accountName.textContent = user.name;
+	elements.accountName.title = user.email;
+	elements.accountAvatar.textContent = user.name.trim().charAt(0).toUpperCase();
+}
+
+async function logout() {
+	try {
+		await api.logout();
+		goToLogin();
+	} catch (error) {
+		showBanner(error.message);
 	}
 }
 
 // Erros com fieldErrors vão para o formulário; os demais, para o aviso do topo
 async function handleError(error, form) {
+	if (error.status === 401) {
+		goToLogin();
+		return;
+	}
+	// sair em outra aba apaga também o cookie do token CSRF: a próxima alteração recebe 403, não 401.
+	// Consultar a sessão diz qual é o caso e, se ela ainda vale, grava um token novo para a próxima tentativa.
+	if (error.status === 403) {
+		try {
+			await api.me();
+		} catch (meError) {
+			if (meError.status === 401) {
+				goToLogin();
+				return;
+			}
+		}
+	}
 	if (form && error.fieldErrors?.length) {
 		hideBanner();
-		showFieldErrors(form, error.fieldErrors);
+		for (const message of showFieldErrors(form, error.fieldErrors)) {
+			showBanner(message);
+		}
 		return;
 	}
 	showBanner(error.message);
@@ -139,6 +138,10 @@ async function loadTodos({ keepBanner = false } = {}) {
 			hideBanner();
 		}
 	} catch (error) {
+		if (error.status === 401) {
+			goToLogin();
+			return;
+		}
 		showBanner(error.message);
 	}
 	render();
@@ -299,6 +302,8 @@ elements.createForm.addEventListener('submit', createTodo);
 
 elements.errorClose.addEventListener('click', hideBanner);
 
+elements.logout.addEventListener('click', logout);
+
 for (const button of elements.filters) {
 	button.addEventListener('click', () => {
 		state.filter = button.dataset.filter;
@@ -367,4 +372,19 @@ document.addEventListener('keydown', (event) => {
 	}
 });
 
-loadTodos();
+// A página só aparece depois de confirmar a sessão; sem ela, vai para a tela de entrada
+async function start() {
+	try {
+		showUser(await api.me());
+	} catch (error) {
+		if (error.status === 401) {
+			goToLogin();
+			return;
+		}
+		showBanner(error.message);
+	}
+	elements.window.hidden = false;
+	await loadTodos({ keepBanner: !elements.errorBanner.hidden });
+}
+
+start();

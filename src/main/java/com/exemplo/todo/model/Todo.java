@@ -7,9 +7,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,9 +46,16 @@ public class Todo {
 	@Column(nullable = false)
 	private Instant updatedAt;
 
-	public Todo(String title, String description) {
+	// anulável no banco para o ddl-auto conseguir criar a coluna numa tabela já populada;
+	// o serviço sempre define o dono ao criar
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "owner_id")
+	private User owner;
+
+	public Todo(String title, String description, User owner) {
 		this.title = title;
 		this.description = description;
+		this.owner = owner;
 	}
 
 }
