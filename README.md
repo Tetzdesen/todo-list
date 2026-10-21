@@ -50,7 +50,7 @@ Sem essas variáveis, a aplicação funciona normalmente, só com e-mail e senha
 
 ### Interface web
 
-A página em `http://localhost:8080/` é feita em HTML, CSS e JavaScript puro, sem build. O próprio Spring Boot a serve a partir de `src/main/resources/static/`. Nela é possível listar as tarefas (nas listas **Todas / Pendentes / Feitas**), criar, editar, concluir/reabrir e apagar tarefas. Os erros de validação da API aparecem junto aos campos. A lateral mostra o usuário logado e o botão **Sair**.
+A página em `http://localhost:8080/` é feita em HTML, CSS e JavaScript puro, sem build. O próprio Spring Boot a serve a partir de `src/main/resources/static/`. Nela é possível listar as tarefas (nas listas **Todas / Pendentes / Feitas**), criar, editar, concluir/reabrir e apagar tarefas. Os erros de validação da API aparecem junto aos campos. A barra superior mostra o usuário logado, o botão **Sair** e o botão que troca entre o **modo claro** e o **modo noturno** (a escolha fica salva no navegador; sem escolha, vale o tema do sistema).
 
 Com a aplicação rodando via `./mvnw spring-boot:run`, alterações nesses arquivos aparecem depois de recompilar (`./mvnw process-resources` ou o build da IDE) e recarregar a página.
 
@@ -241,5 +241,6 @@ src/main/resources/static
 └── js/
     ├── api.js      chamadas à API, token CSRF e erros por campo
     ├── app.js      lista de tarefas e sessão
-    └── login.js    tela de entrada
+    ├── login.js    tela de entrada
+    └── theme.js    modo claro e noturno
 ```

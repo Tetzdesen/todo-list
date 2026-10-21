@@ -4,12 +4,6 @@ const API_URL = '/api/todos';
 
 const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
 
-const VIEW_TITLES = {
-	all: 'Todas',
-	pending: 'Pendentes',
-	completed: 'Feitas',
-};
-
 const EMPTY_MESSAGES = {
 	all: 'Nenhuma tarefa ainda.',
 	pending: 'Nada pendente.',
@@ -23,22 +17,16 @@ const state = {
 	filter: 'all',
 	editingId: null,
 	confirmingId: null,
-	justCheckedId: null,
 };
 
 const elements = {
-	window: document.querySelector('.window'),
-	accountAvatar: document.querySelector('#account-avatar'),
+	page: document.querySelector('.page'),
 	accountName: document.querySelector('#account-name'),
 	logout: document.querySelector('#logout'),
 	createForm: document.querySelector('#create-form'),
-	// pendentes e feitas ficam em listas separadas; os eventos são tratados na área que contém as duas
-	board: document.querySelector('.board'),
-	viewTitle: document.querySelector('#view-title'),
-	viewIcon: document.querySelector('#view-icon'),
+	// os eventos das tarefas são tratados na área principal, que contém a lista
+	board: document.querySelector('main'),
 	list: document.querySelector('#todo-list'),
-	doneSection: document.querySelector('#done-section'),
-	doneList: document.querySelector('#done-list'),
 	emptyMessage: document.querySelector('#empty-message'),
 	filters: document.querySelectorAll('.filter'),
 	filterCounts: document.querySelectorAll('[data-count-for]'),
@@ -82,7 +70,6 @@ function goToLogin() {
 function showUser(user) {
 	elements.accountName.textContent = user.name;
 	elements.accountName.title = user.email;
-	elements.accountAvatar.textContent = user.name.trim().charAt(0).toUpperCase();
 }
 
 async function logout() {
@@ -151,16 +138,12 @@ function render() {
 	const pending = state.todos.filter((todo) => !todo.completed);
 	const done = state.todos.filter((todo) => todo.completed);
 
-	// em "Todas", as feitas descem para um grupo próprio no fim da folha
-	const main = { all: pending, pending, completed: done }[state.filter];
-	const below = state.filter === 'all' ? done : [];
+	// em "Todas", as feitas vêm depois das pendentes
+	const visible = { all: [...pending, ...done], pending, completed: done }[state.filter];
 
-	elements.list.replaceChildren(...main.map(createTodoElement));
-	elements.doneList.replaceChildren(...below.map(createTodoElement));
-	elements.doneSection.hidden = below.length === 0;
-
-	const isEmpty = main.length === 0 && below.length === 0;
-	elements.emptyMessage.hidden = !isEmpty;
+	elements.list.replaceChildren(...visible.map(createTodoElement));
+	elements.list.hidden = visible.length === 0;
+	elements.emptyMessage.hidden = visible.length > 0;
 	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
 
 	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
@@ -168,15 +151,8 @@ function render() {
 		target.textContent = counts[target.dataset.countFor];
 	}
 	for (const button of elements.filters) {
-		const selected = button.dataset.filter === state.filter;
-		button.setAttribute('aria-pressed', String(selected));
-		if (selected) {
-			// o título repete o ícone colorido da lista escolhida, como na lateral
-			elements.viewIcon.replaceChildren(button.querySelector('.list-icon').cloneNode(true));
-		}
+		button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter));
 	}
-	elements.viewTitle.textContent = VIEW_TITLES[state.filter];
-	state.justCheckedId = null;
 }
 
 function startOfDay(date) {
@@ -200,12 +176,12 @@ function createTodoElement(todo) {
 	const item = elements.template.content.firstElementChild.cloneNode(true);
 	item.dataset.id = todo.id;
 	item.classList.toggle('completed', todo.completed);
-	item.classList.toggle('just-checked', todo.id === state.justCheckedId);
 
 	// textContent garante que o texto do usuário nunca é interpretado como HTML
 	item.querySelector('.todo-title').textContent = todo.title;
-	// SVG não tem a propriedade hidden; o atributo precisa ser definido diretamente
-	item.querySelector('.todo-note').toggleAttribute('hidden', !todo.description);
+	const description = item.querySelector('.todo-description');
+	description.textContent = todo.description ?? '';
+	description.hidden = !todo.description;
 	item.querySelector('.todo-created').textContent = describeCreation(todo.createdAt);
 	item.querySelector('.todo-confirm-title').textContent = todo.title;
 
@@ -265,8 +241,7 @@ async function saveEdit(form, id) {
 
 async function toggleTodo(id) {
 	try {
-		const toggled = await api.toggle(id);
-		state.justCheckedId = toggled?.completed ? id : null;
+		await api.toggle(id);
 		await loadTodos();
 	} catch (error) {
 		await handleError(error);
@@ -383,7 +358,7 @@ async function start() {
 		}
 		showBanner(error.message);
 	}
-	elements.window.hidden = false;
+	elements.page.hidden = false;
 	await loadTodos({ keepBanner: !elements.errorBanner.hidden });
 }
 

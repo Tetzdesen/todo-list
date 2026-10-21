@@ -62,6 +62,9 @@ class WebUiTest {
 		mockMvc.perform(get("/js/api.js"))
 				.andExpect(status().isOk())
 				.andExpect(content().contentTypeCompatibleWith("text/javascript"));
+		mockMvc.perform(get("/js/theme.js"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith("text/javascript"));
 	}
 
 }
