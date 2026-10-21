@@ -4,6 +4,9 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Tarefas</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
 	<link rel="stylesheet" href="css/styles.css">
 	<script src="js/theme.js"></script>
 	<script type="module" src="js/app.js"></script>
@@ -11,66 +14,79 @@
 <body>
 	<!-- só aparece depois que app.js confirma a sessão -->
 	<div class="page" hidden>
-		<header class="topbar">
-			<div class="topbar-inner">
-				<a href="./" class="brand">Tarefas</a>
-				<div class="topbar-actions">
+		<header class="header">
+			<div class="header-inner">
+				<a href="./" class="brand">
+					<span class="brand-mark" aria-hidden="true">
+						<svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>
+					</span>
+					Tarefas
+				</a>
+				<div class="header-actions">
+					<button type="button" class="icon-button theme-toggle" data-theme-toggle>
+						<svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A6.8 6.8 0 0 1 7.8 3.5a6.8 6.8 0 1 0 8.7 8.7Z"/></svg>
+						<svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3"/></svg>
+					</button>
+					<span class="header-separator" aria-hidden="true"></span>
 					<span id="account-name" class="account-name"></span>
-					<button type="button" class="button button-small" data-theme-toggle>Modo noturno</button>
-					<button type="button" id="logout" class="button button-small">Sair</button>
+					<button type="button" id="logout" class="button button-ghost">Sair</button>
 				</div>
 			</div>
 		</header>
 
 		<main class="container">
-			<h1 class="page-title">Minhas tarefas</h1>
+			<div class="page-header">
+				<h1 class="page-title">Minhas tarefas</h1>
+				<p id="summary" class="page-subtitle"></p>
+			</div>
 
 			<div id="error-banner" class="error-banner" role="alert" hidden>
 				<span id="error-message"></span>
-				<button type="button" id="error-close" class="link-button" aria-label="Fechar aviso">Fechar</button>
+				<button type="button" id="error-close" class="button button-ghost" aria-label="Fechar aviso">Fechar</button>
 			</div>
 
-			<section class="panel" aria-labelledby="create-heading">
-				<h2 id="create-heading" class="panel-heading">Nova tarefa</h2>
-				<form id="create-form" class="panel-body form" novalidate>
-					<div class="field">
-						<label for="create-title" class="label">Título</label>
-						<input id="create-title" name="title" type="text" class="input" autocomplete="off">
-						<p class="field-error" data-error-for="title"></p>
-					</div>
-					<div class="field">
-						<label for="create-description" class="label">Notas <span class="optional">(opcional)</span></label>
-						<textarea id="create-description" name="description" rows="2" class="input"></textarea>
-						<p class="field-error" data-error-for="description"></p>
-					</div>
-					<div class="form-actions">
-						<button type="submit" class="button button-primary">Adicionar</button>
-					</div>
-				</form>
-			</section>
-
-			<section class="panel" aria-labelledby="list-heading">
-				<div class="panel-heading panel-heading-tabs">
-					<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
-					<nav class="tabs" aria-label="Filtrar tarefas">
-						<button type="button" class="tab filter" data-filter="all" aria-pressed="true">
-							Todas <span class="count" data-count-for="all"></span>
-						</button>
-						<button type="button" class="tab filter" data-filter="pending" aria-pressed="false">
-							Pendentes <span class="count" data-count-for="pending"></span>
-						</button>
-						<button type="button" class="tab filter" data-filter="completed" aria-pressed="false">
-							Feitas <span class="count" data-count-for="completed"></span>
-						</button>
-					</nav>
+			<form id="create-form" class="card composer" novalidate>
+				<h2 class="visually-hidden">Nova tarefa</h2>
+				<div class="field">
+					<label for="create-title" class="visually-hidden">Título</label>
+					<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="O que precisa ser feito?">
+					<p class="field-error" data-error-for="title"></p>
 				</div>
-				<ul id="todo-list" class="todo-list"></ul>
-				<p id="empty-message" class="empty-message" hidden></p>
+				<div class="field">
+					<label for="create-description" class="visually-hidden">Notas (opcional)</label>
+					<textarea id="create-description" name="description" rows="1" class="composer-notes" placeholder="Notas (opcional)"></textarea>
+					<p class="field-error" data-error-for="description"></p>
+				</div>
+				<div class="composer-footer">
+					<span class="hint"><kbd>Enter</kbd> para adicionar</span>
+					<button type="submit" class="button button-primary">Adicionar tarefa</button>
+				</div>
+			</form>
+
+			<section aria-labelledby="list-heading">
+				<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
+				<nav class="segmented" aria-label="Filtrar tarefas">
+					<button type="button" class="filter" data-filter="all" aria-pressed="true">
+						Todas <span class="count" data-count-for="all"></span>
+					</button>
+					<button type="button" class="filter" data-filter="pending" aria-pressed="false">
+						Pendentes <span class="count" data-count-for="pending"></span>
+					</button>
+					<button type="button" class="filter" data-filter="completed" aria-pressed="false">
+						Feitas <span class="count" data-count-for="completed"></span>
+					</button>
+				</nav>
+
+				<div class="card list-card">
+					<ul id="todo-list" class="todo-list"></ul>
+					<p id="empty-message" class="empty-message" hidden></p>
+				</div>
 			</section>
 		</main>
 
 		<footer class="site-footer">
 			<a href="swagger-ui.html">API (Swagger)</a>
+			<span aria-hidden="true">·</span>
 			<a href="https://github.com/Tetzdesen/todo-list" target="_blank" rel="noopener">GitHub</a>
 		</footer>
 	</div>
@@ -78,19 +94,26 @@
 	<template id="todo-template">
 		<li class="todo" data-mode="view">
 			<div class="todo-view">
-				<input type="checkbox" class="todo-toggle">
+				<label class="check">
+					<input type="checkbox" class="todo-toggle">
+					<svg class="check-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 8.5 2.6 2.6L12 5.5"/></svg>
+				</label>
 				<div class="todo-body">
 					<span class="todo-title"></span>
 					<p class="todo-description"></p>
 					<span class="todo-created"></span>
 				</div>
 				<div class="todo-actions">
-					<button type="button" class="link-button" data-action="edit">Editar</button>
-					<button type="button" class="link-button link-danger" data-action="delete">Excluir</button>
+					<button type="button" class="icon-button" data-action="edit" aria-label="Editar tarefa" title="Editar">
+						<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.6 4.4l3 3L7.5 15.5H4.5v-3l8.1-8.1ZM11 6l3 3"/></svg>
+					</button>
+					<button type="button" class="icon-button icon-button-danger" data-action="delete" aria-label="Excluir tarefa" title="Excluir">
+						<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg>
+					</button>
 				</div>
 			</div>
 
-			<form class="todo-edit form" novalidate>
+			<form class="todo-edit" novalidate>
 				<div class="field">
 					<label>
 						<span class="label">Título</span>
@@ -112,7 +135,7 @@
 			</form>
 
 			<div class="todo-confirm">
-				<p>Excluir a tarefa “<span class="todo-confirm-title"></span>”?</p>
+				<p>Excluir “<span class="todo-confirm-title"></span>”?</p>
 				<div class="form-actions">
 					<button type="button" class="button" data-action="cancel-delete">Cancelar</button>
 					<button type="button" class="button button-danger" data-action="confirm-delete">Excluir</button>

@@ -26,11 +26,13 @@
 		return savedTheme() ?? (systemDark.matches ? 'dark' : 'light');
 	}
 
-	// o botão mostra o tema para o qual vai mudar
+	// o botão é só um ícone (lua ou sol, trocados pelo CSS): o texto fica no rótulo acessível e na dica
 	function apply(theme) {
 		root.dataset.theme = theme;
+		const label = theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo noturno';
 		for (const button of document.querySelectorAll('[data-theme-toggle]')) {
-			button.textContent = theme === 'dark' ? 'Modo claro' : 'Modo noturno';
+			button.setAttribute('aria-label', label);
+			button.title = label;
 		}
 	}
 

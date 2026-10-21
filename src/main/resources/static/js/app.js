@@ -5,8 +5,8 @@ const API_URL = '/api/todos';
 const itemDateFormat = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
 
 const EMPTY_MESSAGES = {
-	all: 'Nenhuma tarefa ainda.',
-	pending: 'Nada pendente.',
+	all: 'Nenhuma tarefa ainda. Adicione a primeira acima.',
+	pending: 'Nada pendente. Tudo em dia!',
 	completed: 'Nenhuma tarefa feita ainda.',
 };
 
@@ -22,6 +22,7 @@ const state = {
 const elements = {
 	page: document.querySelector('.page'),
 	accountName: document.querySelector('#account-name'),
+	summary: document.querySelector('#summary'),
 	logout: document.querySelector('#logout'),
 	createForm: document.querySelector('#create-form'),
 	// os eventos das tarefas são tratados na área principal, que contém a lista
@@ -146,6 +147,8 @@ function render() {
 	elements.emptyMessage.hidden = visible.length > 0;
 	elements.emptyMessage.textContent = EMPTY_MESSAGES[state.filter];
 
+	elements.summary.textContent = describePending(pending.length, state.todos.length);
+
 	const counts = { all: state.todos.length, pending: pending.length, completed: done.length };
 	for (const target of elements.filterCounts) {
 		target.textContent = counts[target.dataset.countFor];
@@ -153,6 +156,17 @@ function render() {
 	for (const button of elements.filters) {
 		button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter));
 	}
+}
+
+// subtítulo da página: "3 tarefas pendentes", "Tudo em dia" ou nada, quando ainda não há tarefas
+function describePending(pending, total) {
+	if (total === 0) {
+		return '';
+	}
+	if (pending === 0) {
+		return 'Tudo em dia. Nenhuma tarefa pendente.';
+	}
+	return pending === 1 ? '1 tarefa pendente' : `${pending} tarefas pendentes`;
 }
 
 function startOfDay(date) {
