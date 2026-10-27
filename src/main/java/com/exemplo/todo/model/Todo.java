@@ -46,10 +46,8 @@ public class Todo {
 	@Column(nullable = false)
 	private Instant updatedAt;
 
-	// anulável no banco para o ddl-auto conseguir criar a coluna numa tabela já populada;
-	// o serviço sempre define o dono ao criar
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "owner_id")
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "owner_id", nullable = false)
 	private User owner;
 
 	public Todo(String title, String description, User owner) {

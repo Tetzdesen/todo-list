@@ -3,6 +3,8 @@ package com.exemplo.todo.exception;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +22,12 @@ import com.exemplo.todo.dto.ErrorResponse;
 import com.exemplo.todo.dto.FieldError;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(TodoNotFoundException.class)
 	public ResponseEntity<ErrorResponse> handleNotFound(TodoNotFoundException ex, HttpServletRequest request) {
@@ -40,6 +45,17 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos", request, null);
+	}
+
+	// a conta foi apagada com a sessão ainda aberta: a sessão deixa de valer e o cliente volta para o login
+	@ExceptionHandler(AccountNotFoundException.class)
+	public ResponseEntity<ErrorResponse> handleAccountNotFound(AccountNotFoundException ex,
+			HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			session.invalidate();
+		}
+		return build(HttpStatus.UNAUTHORIZED, "Sessão inválida; entre novamente", request, null);
 	}
 
 	@ExceptionHandler(InvalidFieldException.class)
@@ -91,6 +107,18 @@ public class GlobalExceptionHandler {
 			HttpServletRequest request) {
 		return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type não suportado; use application/json", request,
 				null);
+	}
+
+	// demais exceções do Spring MVC (parâmetro obrigatório ausente, 406...) já trazem o status certo; o resto é 500,
+	// sem detalhes internos na resposta
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
+		if (ex instanceof org.springframework.web.ErrorResponse springError) {
+			HttpStatus status = HttpStatus.valueOf(springError.getStatusCode().value());
+			return build(status, status.getReasonPhrase(), request, null);
+		}
+		log.error("Erro inesperado em {} {}", request.getMethod(), request.getRequestURI(), ex);
+		return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno no servidor", request, null);
 	}
 
 	private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request,

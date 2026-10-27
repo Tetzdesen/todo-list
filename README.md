@@ -2,7 +2,7 @@
 
 API REST simples para gerenciar tarefas (todo-list), com uma interface web e contas de usuário, feita para estudo de Spring Boot.
 
-**Stack:** Java 21, Spring Boot 3.5, Maven, Spring Web, Spring Data JPA, Spring Security (sessão + login com Google via OAuth2/OpenID Connect), H2 (em memória), PostgreSQL (produção), Bean Validation, Lombok e springdoc-openapi.
+**Stack:** Java 21, Spring Boot 3.5, Maven, Spring Web, Spring Data JPA, Flyway, Spring Security (sessão + login com Google via OAuth2/OpenID Connect), H2 (em memória), PostgreSQL (produção), Bean Validation, Lombok e springdoc-openapi.
 
 ## Como rodar
 
@@ -71,7 +71,9 @@ O `Dockerfile` gera a imagem da aplicação. Em produção, defina:
 | `DATABASE_URL`, `DB_USER`, `DB_PASSWORD` | conexão com o PostgreSQL                 |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | opcionais, para o login com Google     |
 
-O Hibernate cria a tabela `users` e a coluna `owner_id` em `todos` no primeiro deploy. Tarefas criadas antes das contas ficam sem dono e não aparecem para ninguém; para entregá-las a uma conta, rode no banco `UPDATE todos SET owner_id = <id do usuário> WHERE owner_id IS NULL;`.
+O schema do banco é criado e atualizado pelas migrações do Flyway em `src/main/resources/db/migration`; o Hibernate só confere se ele bate com as entidades (`ddl-auto=validate`). Para mudar o schema, crie um novo arquivo `V<n>__descricao.sql` e nunca altere uma migração que já rodou.
+
+Um banco criado antes do Flyway (pelo antigo `ddl-auto=update`) é marcado como versão 1 no primeiro deploy, e as migrações seguintes rodam normalmente. A `V2` **apaga as tarefas sem dono** (criadas antes das contas de usuário) e torna o dono obrigatório. Para guardar essas tarefas, rode antes do deploy `UPDATE todos SET owner_id = <id do usuário> WHERE owner_id IS NULL;`.
 
 As sessões ficam na memória da aplicação: a cada deploy ou reinício, todos precisam entrar de novo.
 
@@ -232,7 +234,9 @@ src/main/java/com/exemplo/todo
 ├── dto/          TodoCreateRequest, TodoUpdateRequest, TodoResponse, RegisterRequest, LoginRequest,
 │                 UserResponse, ErrorResponse, FieldError
 └── exception/    TodoNotFoundException, EmailAlreadyUsedException, InvalidFieldException,
-                  GoogleLoginException, GlobalExceptionHandler
+                  GoogleLoginException, AccountNotFoundException, GlobalExceptionHandler
+
+src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório)
 
 src/main/resources/static
 ├── index.html      lista de tarefas

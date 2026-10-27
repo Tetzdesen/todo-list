@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.exemplo.todo.dto.RegisterRequest;
+import com.exemplo.todo.exception.AccountNotFoundException;
 import com.exemplo.todo.exception.EmailAlreadyUsedException;
 import com.exemplo.todo.exception.GoogleLoginException;
 import com.exemplo.todo.exception.InvalidFieldException;
@@ -79,7 +80,7 @@ public class UserService {
 	}
 
 	public User getById(Long id) {
-		return repository.findById(id).orElseThrow();
+		return repository.findById(id).orElseThrow(() -> new AccountNotFoundException(id));
 	}
 
 	public static boolean exceedsPasswordLimit(String password) {

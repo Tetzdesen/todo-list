@@ -142,6 +142,20 @@ class AuthIntegrationTest {
 	}
 
 	@Test
+	void deveEncerrarASessaoDeUmaContaQueNaoExisteMais() throws Exception {
+		String email = unico("ana") + "@exemplo.com";
+		MockHttpSession session = new MockHttpSession();
+		register(session, "Ana", email, "segredo123").andExpect(status().isCreated());
+		userRepository.delete(userRepository.findByEmail(email).orElseThrow());
+
+		mockMvc.perform(get("/api/auth/me").session(session))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.message").value("Sessão inválida; entre novamente"));
+
+		assertThat(session.isInvalid()).isTrue();
+	}
+
+	@Test
 	void deveInformarProvedoresSemLoginEGerarTokenCsrf() throws Exception {
 		mockMvc.perform(get("/api/auth/providers"))
 				.andExpect(status().isOk())

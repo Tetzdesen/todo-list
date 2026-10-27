@@ -1,6 +1,8 @@
 package com.exemplo.todo.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -15,6 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,11 +30,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.exemplo.todo.dto.TodoCreateRequest;
 import com.exemplo.todo.dto.TodoResponse;
@@ -277,6 +282,28 @@ class TodoControllerTest {
 				.andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
 
 		verify(service, never()).update(any(), any(), any());
+	}
+
+	@Test
+	void deveResponder500SemExporDetalhesDoErro() throws Exception {
+		when(service.findById(USER_ID, 1L)).thenThrow(new IllegalStateException("detalhe interno"));
+
+		mockMvc.perform(get("/api/todos/1"))
+				.andExpect(status().isInternalServerError())
+				.andExpect(jsonPath("$.status").value(500))
+				.andExpect(jsonPath("$.message").value("Erro interno no servidor"))
+				.andExpect(jsonPath("$.path").value("/api/todos/1"))
+				.andExpect(content().string(not(containsString("detalhe interno"))));
+	}
+
+	@Test
+	void deveManterOStatusDeExcecoesDoSpringNoFormatoPadrao() throws Exception {
+		when(service.findById(USER_ID, 1L)).thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE));
+
+		mockMvc.perform(get("/api/todos/1"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("$.status").value(503))
+				.andExpect(jsonPath("$.path").value("/api/todos/1"));
 	}
 
 	@Test
