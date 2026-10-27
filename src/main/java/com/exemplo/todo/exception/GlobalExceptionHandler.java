@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -21,7 +22,6 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.exemplo.todo.dto.ErrorResponse;
 import com.exemplo.todo.dto.FieldError;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,39 +33,39 @@ public class GlobalExceptionHandler {
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(TodoNotFoundException.class)
-	public ResponseEntity<ErrorResponse> handleNotFound(TodoNotFoundException ex, HttpServletRequest request) {
+	public ResponseEntity<ProblemDetail> handleNotFound(TodoNotFoundException ex, HttpServletRequest request) {
 		return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
 	}
 
 	@ExceptionHandler(TodoConflictException.class)
-	public ResponseEntity<ErrorResponse> handleConflict(TodoConflictException ex, HttpServletRequest request) {
+	public ResponseEntity<ProblemDetail> handleConflict(TodoConflictException ex, HttpServletRequest request) {
 		return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
 	}
 
 	// duas alterações da mesma tarefa ao mesmo tempo: a segunda a gravar perde
 	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-	public ResponseEntity<ErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
+	public ResponseEntity<ProblemDetail> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.CONFLICT, "A tarefa foi alterada em outro lugar. A lista foi recarregada; tente de novo.",
 				request, null);
 	}
 
 	@ExceptionHandler(EmailAlreadyUsedException.class)
-	public ResponseEntity<ErrorResponse> handleEmailAlreadyUsed(EmailAlreadyUsedException ex,
+	public ResponseEntity<ProblemDetail> handleEmailAlreadyUsed(EmailAlreadyUsedException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
 	}
 
 	// só o login autentica dentro de um controller; a mensagem não revela se o e-mail existe
 	@ExceptionHandler(AuthenticationException.class)
-	public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex,
+	public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos", request, null);
 	}
 
 	// a conta foi apagada com a sessão ainda aberta: a sessão deixa de valer e o cliente volta para o login
 	@ExceptionHandler(AccountNotFoundException.class)
-	public ResponseEntity<ErrorResponse> handleAccountNotFound(AccountNotFoundException ex,
+	public ResponseEntity<ProblemDetail> handleAccountNotFound(AccountNotFoundException ex,
 			HttpServletRequest request) {
 		HttpSession session = request.getSession(false);
 		if (session != null) {
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(TooManyLoginAttemptsException.class)
-	public ResponseEntity<ErrorResponse> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
+	public ResponseEntity<ProblemDetail> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
 			HttpServletRequest request) {
 		// arredonda para cima: o cliente nunca é mandado tentar de novo antes do desbloqueio
 		long seconds = Math.max(1, (ex.getRetryAfter().toMillis() + 999) / 1000);
@@ -84,17 +84,17 @@ public class GlobalExceptionHandler {
 				+ (minutes == 1 ? " minuto." : " minutos.");
 		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
 				.header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
-				.body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, message, request.getRequestURI(), null));
+				.body(Problems.of(HttpStatus.TOO_MANY_REQUESTS, message, request.getRequestURI(), null));
 	}
 
 	@ExceptionHandler(InvalidFieldException.class)
-	public ResponseEntity<ErrorResponse> handleInvalidField(InvalidFieldException ex, HttpServletRequest request) {
+	public ResponseEntity<ProblemDetail> handleInvalidField(InvalidFieldException ex, HttpServletRequest request) {
 		return build(HttpStatus.BAD_REQUEST, "Dados inválidos", request,
 				List.of(new FieldError(ex.getField(), ex.getMessage())));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
+	public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex,
 			HttpServletRequest request) {
 		List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
 				.map(error -> new FieldError(error.getField(), error.getDefaultMessage()))
@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
 
 	// restrições em parâmetros de query, como page e size na listagem de tarefas
 	@ExceptionHandler(HandlerMethodValidationException.class)
-	public ResponseEntity<ErrorResponse> handleParameterValidation(HandlerMethodValidationException ex,
+	public ResponseEntity<ProblemDetail> handleParameterValidation(HandlerMethodValidationException ex,
 			HttpServletRequest request) {
 		List<FieldError> fieldErrors = ex.getParameterValidationResults().stream()
 				.flatMap(result -> result.getResolvableErrors().stream()
@@ -115,28 +115,28 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
-	public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex,
+	public ResponseEntity<ProblemDetail> handleUnreadable(HttpMessageNotReadableException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou malformado", request, null);
 	}
 
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
-	public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+	public ResponseEntity<ProblemDetail> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
 			HttpServletRequest request) {
 		String message = "Valor inválido para o parâmetro '" + ex.getName() + "': " + ex.getValue();
 		return build(HttpStatus.BAD_REQUEST, message, request, null);
 	}
 
 	@ExceptionHandler(NoResourceFoundException.class)
-	public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+	public ResponseEntity<ProblemDetail> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
 		return build(HttpStatus.NOT_FOUND, "Recurso não encontrado", request, null);
 	}
 
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-	public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+	public ResponseEntity<ProblemDetail> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
 			HttpServletRequest request) {
 		String message = "Método " + ex.getMethod() + " não suportado para este caminho";
-		ResponseEntity<ErrorResponse> response = build(HttpStatus.METHOD_NOT_ALLOWED, message, request, null);
+		ResponseEntity<ProblemDetail> response = build(HttpStatus.METHOD_NOT_ALLOWED, message, request, null);
 		Set<HttpMethod> supported = ex.getSupportedHttpMethods();
 		return supported == null ? response
 				: ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).allow(supported.toArray(HttpMethod[]::new))
@@ -144,7 +144,7 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-	public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
+	public ResponseEntity<ProblemDetail> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
 			HttpServletRequest request) {
 		return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type não suportado; use application/json", request,
 				null);
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
 	// demais exceções do Spring MVC (parâmetro obrigatório ausente, 406...) já trazem o status certo; o resto é 500,
 	// sem detalhes internos na resposta
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
+	public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
 		if (ex instanceof org.springframework.web.ErrorResponse springError) {
 			HttpStatus status = HttpStatus.valueOf(springError.getStatusCode().value());
 			return build(status, status.getReasonPhrase(), request, null);
@@ -162,10 +162,10 @@ public class GlobalExceptionHandler {
 		return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno no servidor", request, null);
 	}
 
-	private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request,
+	private ResponseEntity<ProblemDetail> build(HttpStatus status, String message, HttpServletRequest request,
 			List<FieldError> fieldErrors) {
 		return ResponseEntity.status(status)
-				.body(ErrorResponse.of(status, message, request.getRequestURI(), fieldErrors));
+				.body(Problems.of(status, message, request.getRequestURI(), fieldErrors));
 	}
 
 }

@@ -37,9 +37,9 @@ class SecurityConfigTest {
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.timestamp").exists())
 				.andExpect(jsonPath("$.status").value(401))
-				.andExpect(jsonPath("$.error").value("Unauthorized"))
-				.andExpect(jsonPath("$.message").value("Autenticação necessária"))
-				.andExpect(jsonPath("$.path").value("/api/todos"));
+				.andExpect(jsonPath("$.title").value("Unauthorized"))
+				.andExpect(jsonPath("$.detail").value("Autenticação necessária"))
+				.andExpect(jsonPath("$.instance").value("/api/todos"));
 	}
 
 	@Test
@@ -50,8 +50,8 @@ class SecurityConfigTest {
 				.content("{\"title\": \"X\"}"))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.status").value(403))
-				.andExpect(jsonPath("$.message").value("Token CSRF ausente ou inválido"))
-				.andExpect(jsonPath("$.path").value("/api/todos"));
+				.andExpect(jsonPath("$.detail").value("Token CSRF ausente ou inválido"))
+				.andExpect(jsonPath("$.instance").value("/api/todos"));
 	}
 
 	@Test

@@ -134,7 +134,7 @@ class TodoApiIntegrationTest {
 		mockMvc.perform(get("/api/todos/{id}", id).session(session))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.status").value(404))
-				.andExpect(jsonPath("$.path").value("/api/todos/" + id));
+				.andExpect(jsonPath("$.instance").value("/api/todos/" + id));
 	}
 
 	@Test

@@ -67,7 +67,7 @@ class AuthIntegrationTest {
 		register(new MockHttpSession(), "Outra", email.toUpperCase(), "segredo123")
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.status").value(409))
-				.andExpect(jsonPath("$.path").value("/api/auth/register"));
+				.andExpect(jsonPath("$.instance").value("/api/auth/register"));
 	}
 
 	@Test
@@ -111,15 +111,15 @@ class AuthIntegrationTest {
 
 		login(new MockHttpSession(), email, "errada123")
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.message").value("E-mail ou senha inválidos"));
+				.andExpect(jsonPath("$.detail").value("E-mail ou senha inválidos"));
 
 		login(new MockHttpSession(), unico("ninguem") + "@exemplo.com", "segredo123")
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.message").value("E-mail ou senha inválidos"));
+				.andExpect(jsonPath("$.detail").value("E-mail ou senha inválidos"));
 
 		login(new MockHttpSession(), email, "é".repeat(40))
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.message").value("E-mail ou senha inválidos"));
+				.andExpect(jsonPath("$.detail").value("E-mail ou senha inválidos"));
 	}
 
 	@Test
@@ -136,7 +136,7 @@ class AuthIntegrationTest {
 				.andExpect(status().isTooManyRequests())
 				.andExpect(header().exists("Retry-After"))
 				.andExpect(jsonPath("$.status").value(429))
-				.andExpect(jsonPath("$.message").value(containsString("Tente de novo em 15 minutos")));
+				.andExpect(jsonPath("$.detail").value(containsString("Tente de novo em 15 minutos")));
 	}
 
 	@Test
@@ -147,7 +147,7 @@ class AuthIntegrationTest {
 
 		login(new MockHttpSession(), bia.getEmail(), "qualquer123")
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.message").value("E-mail ou senha inválidos"));
+				.andExpect(jsonPath("$.detail").value("E-mail ou senha inválidos"));
 	}
 
 	@Test
@@ -155,7 +155,7 @@ class AuthIntegrationTest {
 		mockMvc.perform(get("/api/auth/me"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.status").value(401))
-				.andExpect(jsonPath("$.path").value("/api/auth/me"));
+				.andExpect(jsonPath("$.instance").value("/api/auth/me"));
 	}
 
 	@Test
@@ -167,7 +167,7 @@ class AuthIntegrationTest {
 
 		mockMvc.perform(get("/api/auth/me").session(session))
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.message").value("Sessão inválida; entre novamente"));
+				.andExpect(jsonPath("$.detail").value("Sessão inválida; entre novamente"));
 
 		assertThat(session.isInvalid()).isTrue();
 	}

@@ -95,6 +95,9 @@ class TodoControllerTest {
 
 		semLogin.perform(get("/api/todos"))
 				.andExpect(status().isUnauthorized())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.detail").value("Autenticação necessária"))
+				.andExpect(jsonPath("$.instance").value("/api/todos"))
 				.andExpect(jsonPath("$.status").value(401));
 
 		verify(service, never()).list(any(), any(), anyInt(), anyInt());
@@ -144,9 +147,9 @@ class TodoControllerTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.timestamp").exists())
 				.andExpect(jsonPath("$.status").value(400))
-				.andExpect(jsonPath("$.error").value("Bad Request"))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/todos"))
+				.andExpect(jsonPath("$.title").value("Bad Request"))
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/todos"))
 				.andExpect(jsonPath("$.fieldErrors", hasSize(1)))
 				.andExpect(jsonPath("$.fieldErrors[0].field").value("title"))
 				.andExpect(jsonPath("$.fieldErrors[0].message").exists());
@@ -181,9 +184,9 @@ class TodoControllerTest {
 				.content("{\"title\": "))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.status").value(400))
-				.andExpect(jsonPath("$.error").value("Bad Request"))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/todos"))
+				.andExpect(jsonPath("$.title").value("Bad Request"))
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/todos"))
 				.andExpect(jsonPath("$.timestamp").exists())
 				.andExpect(jsonPath("$.fieldErrors").doesNotExist());
 	}
@@ -278,10 +281,13 @@ class TodoControllerTest {
 
 		mockMvc.perform(get("/api/todos/999"))
 				.andExpect(status().isNotFound())
+				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.type").value("about:blank"))
 				.andExpect(jsonPath("$.status").value(404))
-				.andExpect(jsonPath("$.error").value("Not Found"))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/todos/999"))
+				.andExpect(jsonPath("$.title").value("Not Found"))
+				.andExpect(jsonPath("$.detail").value("Tarefa 999 não encontrada"))
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/todos/999"))
 				.andExpect(jsonPath("$.timestamp").exists())
 				.andExpect(jsonPath("$.fieldErrors").doesNotExist());
 	}
@@ -291,7 +297,7 @@ class TodoControllerTest {
 		mockMvc.perform(get("/api/todos/abc"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.status").value(400))
-				.andExpect(jsonPath("$.path").value("/api/todos/abc"));
+				.andExpect(jsonPath("$.instance").value("/api/todos/abc"));
 	}
 
 	@Test
@@ -341,7 +347,7 @@ class TodoControllerTest {
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("{\"title\": \"" + titulo + "\"}"))
 					.andExpect(status().isBadRequest())
-					.andExpect(jsonPath("$.path").value("/api/todos/1"))
+					.andExpect(jsonPath("$.instance").value("/api/todos/1"))
 					.andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
 		}
 
@@ -359,7 +365,7 @@ class TodoControllerTest {
 						"""))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.status").value(409))
-				.andExpect(jsonPath("$.path").value("/api/todos/1"));
+				.andExpect(jsonPath("$.instance").value("/api/todos/1"));
 	}
 
 	@Test
@@ -369,8 +375,8 @@ class TodoControllerTest {
 		mockMvc.perform(get("/api/todos/1"))
 				.andExpect(status().isInternalServerError())
 				.andExpect(jsonPath("$.status").value(500))
-				.andExpect(jsonPath("$.message").value("Erro interno no servidor"))
-				.andExpect(jsonPath("$.path").value("/api/todos/1"))
+				.andExpect(jsonPath("$.detail").value("Erro interno no servidor"))
+				.andExpect(jsonPath("$.instance").value("/api/todos/1"))
 				.andExpect(content().string(not(containsString("detalhe interno"))));
 	}
 
@@ -381,7 +387,7 @@ class TodoControllerTest {
 		mockMvc.perform(get("/api/todos/1"))
 				.andExpect(status().isServiceUnavailable())
 				.andExpect(jsonPath("$.status").value(503))
-				.andExpect(jsonPath("$.path").value("/api/todos/1"));
+				.andExpect(jsonPath("$.instance").value("/api/todos/1"));
 	}
 
 	@Test
@@ -421,7 +427,7 @@ class TodoControllerTest {
 
 		mockMvc.perform(delete("/api/todos/999"))
 				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.path").value("/api/todos/999"));
+				.andExpect(jsonPath("$.instance").value("/api/todos/999"));
 	}
 
 	@Test
@@ -431,8 +437,8 @@ class TodoControllerTest {
 				.content("x"))
 				.andExpect(status().isUnsupportedMediaType())
 				.andExpect(jsonPath("$.status").value(415))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/todos"));
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/todos"));
 	}
 
 	@Test
@@ -441,8 +447,8 @@ class TodoControllerTest {
 				.andExpect(status().isMethodNotAllowed())
 				.andExpect(header().exists("Allow"))
 				.andExpect(jsonPath("$.status").value(405))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/todos"));
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/todos"));
 	}
 
 	@Test
@@ -450,8 +456,8 @@ class TodoControllerTest {
 		mockMvc.perform(get("/api/nada"))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.status").value(404))
-				.andExpect(jsonPath("$.message").exists())
-				.andExpect(jsonPath("$.path").value("/api/nada"));
+				.andExpect(jsonPath("$.detail").exists())
+				.andExpect(jsonPath("$.instance").value("/api/nada"));
 	}
 
 	private static TodoResponse todo(Long id, String title, String description, boolean completed) {

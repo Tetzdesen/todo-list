@@ -143,15 +143,16 @@ Cada tarefa tem um número `version`, que sobe a cada alteração. Mande no `PAT
 
 ### Formato de erro
 
-Todas as respostas de erro usam o mesmo formato (erros inesperados são `500`, sem detalhes internos). Erros de validação incluem também `fieldErrors`:
+Todas as respostas de erro seguem a [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (`Content-Type: application/problem+json`); erros inesperados são `500`, sem detalhes internos. `title` é a frase do status HTTP, `detail` a mensagem para o usuário e `instance` o caminho pedido. Os campos extras são `timestamp` e, em erros de validação, `fieldErrors`:
 
 ```json
 {
-  "timestamp": "2026-10-19T12:00:00Z",
+  "type": "about:blank",
+  "title": "Bad Request",
   "status": 400,
-  "error": "Bad Request",
-  "message": "Dados inválidos",
-  "path": "/api/todos",
+  "detail": "Dados inválidos",
+  "instance": "/api/todos",
+  "timestamp": "2026-10-19T12:00:00Z",
   "fieldErrors": [
     { "field": "title", "message": "não deve estar em branco" }
   ]
@@ -261,10 +262,10 @@ src/main/java/com/exemplo/todo
 ├── security/     SecurityConfig, AppUserPrincipal, AppUserDetailsService, GoogleOAuthConfig,
 │                 GoogleOidcUserService, JsonSecurityErrorHandler, LoginAttemptLimiter
 ├── dto/          TodoCreateRequest, TodoPatchRequest, TodoResponse, RegisterRequest, LoginRequest,
-│                 UserResponse, PageResponse, ErrorResponse, FieldError
+│                 UserResponse, PageResponse, FieldError
 └── exception/    TodoNotFoundException, EmailAlreadyUsedException, InvalidFieldException,
                   GoogleLoginException, AccountNotFoundException, TooManyLoginAttemptsException,
-                  TodoConflictException, GlobalExceptionHandler
+                  TodoConflictException, Problems, GlobalExceptionHandler
 
 src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório, V3 versão da tarefa)
 

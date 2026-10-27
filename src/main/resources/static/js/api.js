@@ -37,7 +37,8 @@ export async function request(path, options = {}) {
 
 	const body = await response.json().catch(() => null);
 	if (!response.ok) {
-		throw new ApiError(body?.message ?? `Erro ${response.status}`, response.status, body?.fieldErrors ?? []);
+		// erros no formato da RFC 9457 (application/problem+json): a mensagem vem em "detail"
+		throw new ApiError(body?.detail ?? `Erro ${response.status}`, response.status, body?.fieldErrors ?? []);
 	}
 	return body;
 }

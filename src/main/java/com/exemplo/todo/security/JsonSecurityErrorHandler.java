@@ -11,7 +11,7 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.stereotype.Component;
 
-import com.exemplo.todo.dto.ErrorResponse;
+import com.exemplo.todo.exception.Problems;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,10 +46,10 @@ public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, Acces
 	public void write(HttpServletResponse response, HttpStatus status, String message,
 			HttpServletRequest request) throws IOException {
 		response.setStatus(status.value());
-		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");
 		objectMapper.writeValue(response.getOutputStream(),
-				ErrorResponse.of(status, message, request.getRequestURI(), null));
+				Problems.of(status, message, request.getRequestURI(), null));
 	}
 
 }
