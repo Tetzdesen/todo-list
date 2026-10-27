@@ -63,6 +63,10 @@ Com a aplicação rodando via `./mvnw spring-boot:run`, alterações nesses arqu
 ./mvnw verify   # build completo
 ```
 
+Os testes usam H2, exceto o `PostgresIntegrationTest`, que sobe um PostgreSQL com [Testcontainers](https://testcontainers.com) para conferir as migrações e o schema como em produção. Ele precisa de Docker: sem Docker, é pulado na sua máquina, mas no CI roda sempre (e falha se não houver Docker).
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda `./mvnw verify` a cada push na `main` e em cada pull request.
+
 ## Deploy (Render)
 
 O `Dockerfile` gera a imagem da aplicação. Em produção, defina:
