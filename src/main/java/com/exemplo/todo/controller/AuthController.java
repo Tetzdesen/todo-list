@@ -28,6 +28,7 @@ import com.exemplo.todo.dto.RegisterRequest;
 import com.exemplo.todo.dto.UserResponse;
 import com.exemplo.todo.model.User;
 import com.exemplo.todo.security.AppUserPrincipal;
+import com.exemplo.todo.security.ClientIpDiagnostics;
 import com.exemplo.todo.security.LoginAttemptLimiter;
 import com.exemplo.todo.service.UserService;
 
@@ -76,6 +77,7 @@ public class AuthController {
 			HttpServletResponse response) {
 		// em produção, o IP vem do X-Forwarded-For repassado pelo proxy (server.forward-headers-strategy)
 		String ip = request.getRemoteAddr();
+		ClientIpDiagnostics.log(request); // TEMPORÁRIO
 		loginAttempts.checkAllowed(body.email(), ip);
 		Authentication authentication;
 		try {
