@@ -123,6 +123,23 @@ class AuthIntegrationTest {
 	}
 
 	@Test
+	void deveBloquearOEmailDepoisDeMuitasSenhasErradas() throws Exception {
+		String email = unico("ana") + "@exemplo.com";
+		register(new MockHttpSession(), "Ana", email, "segredo123");
+
+		for (int i = 0; i < 5; i++) {
+			login(new MockHttpSession(), email, "errada123", "10.0.0.1").andExpect(status().isUnauthorized());
+		}
+
+		// bloqueado mesmo com a senha certa e vindo de outro IP
+		login(new MockHttpSession(), email, "segredo123", "10.0.0.2")
+				.andExpect(status().isTooManyRequests())
+				.andExpect(header().exists("Retry-After"))
+				.andExpect(jsonPath("$.status").value(429))
+				.andExpect(jsonPath("$.message").value(containsString("Tente de novo em 15 minutos")));
+	}
+
+	@Test
 	void deveRecusarLoginComSenhaEmContaCriadaPeloGoogle() throws Exception {
 		User bia = new User("Bia", unico("bia") + "@gmail.com");
 		bia.setGoogleId(unico("google"));
@@ -194,7 +211,17 @@ class AuthIntegrationTest {
 	}
 
 	private ResultActions login(MockHttpSession session, String email, String password) throws Exception {
+		return login(session, email, password, "127.0.0.1");
+	}
+
+	// cada teste de bloqueio usa IPs próprios: o limite por IP vale para o contexto inteiro
+	private ResultActions login(MockHttpSession session, String email, String password, String ip)
+			throws Exception {
 		return mockMvc.perform(post("/api/auth/login")
+				.with(request -> {
+					request.setRemoteAddr(ip);
+					return request;
+				})
 				.session(session)
 				.with(realCsrf(mockMvc))
 				.contentType(MediaType.APPLICATION_JSON)

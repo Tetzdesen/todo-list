@@ -47,7 +47,17 @@ const elements = {
 // ---------- Comunicação com a API ----------
 
 const api = {
-	list: () => request(API_URL),
+	// a API devolve as tarefas em páginas; a tela busca todas, porque os contadores e o progresso usam a lista inteira
+	list: async () => {
+		const todos = [];
+		for (let page = 0; ; page++) {
+			const result = await request(`${API_URL}?page=${page}&size=100`);
+			todos.push(...result.content);
+			if (page + 1 >= result.totalPages) {
+				return todos;
+			}
+		}
+	},
 	create: (data) => request(API_URL, { method: 'POST', body: JSON.stringify(data) }),
 	update: (id, data) => request(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 	toggle: (id) => request(`${API_URL}/${id}/toggle`, { method: 'PATCH' }),

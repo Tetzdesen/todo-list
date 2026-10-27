@@ -1,10 +1,12 @@
 package com.exemplo.todo.service;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.exemplo.todo.dto.PageResponse;
 import com.exemplo.todo.dto.TodoCreateRequest;
 import com.exemplo.todo.dto.TodoResponse;
 import com.exemplo.todo.dto.TodoUpdateRequest;
@@ -18,6 +20,9 @@ import com.exemplo.todo.repository.UserRepository;
 @Transactional(readOnly = true)
 public class TodoService {
 
+	// o id desempata tarefas criadas no mesmo instante, para nenhuma se repetir ou sumir entre as páginas
+	private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+
 	private final TodoRepository repository;
 	private final UserRepository userRepository;
 
@@ -26,11 +31,12 @@ public class TodoService {
 		this.userRepository = userRepository;
 	}
 
-	public List<TodoResponse> list(Long userId, Boolean completed) {
-		List<Todo> todos = completed == null
-				? repository.findByOwnerIdOrderByCreatedAtDesc(userId)
-				: repository.findByOwnerIdAndCompletedOrderByCreatedAtDesc(userId, completed);
-		return todos.stream().map(TodoResponse::from).toList();
+	public PageResponse<TodoResponse> list(Long userId, Boolean completed, int page, int size) {
+		PageRequest pageable = PageRequest.of(page, size, NEWEST_FIRST);
+		Page<Todo> todos = completed == null
+				? repository.findByOwnerId(userId, pageable)
+				: repository.findByOwnerIdAndCompleted(userId, completed, pageable);
+		return PageResponse.from(todos.map(TodoResponse::from));
 	}
 
 	public TodoResponse findById(Long userId, Long id) {

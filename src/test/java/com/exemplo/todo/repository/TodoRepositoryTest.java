@@ -11,12 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import com.exemplo.todo.model.Todo;
 import com.exemplo.todo.model.User;
 
 @DataJpaTest
 class TodoRepositoryTest {
+
+	private static final PageRequest RECENTES = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
 
 	@Autowired
 	private TodoRepository repository;
@@ -52,15 +57,16 @@ class TodoRepositoryTest {
 
 	@Test
 	void deveListarTodasDaMaisRecenteParaAMaisAntiga() {
-		List<Todo> todos = repository.findByOwnerIdOrderByCreatedAtDesc(ana.getId());
+		Page<Todo> todos = repository.findByOwnerId(ana.getId(), RECENTES);
 
+		assertThat(todos.getTotalElements()).isEqualTo(3);
 		assertThat(todos).extracting(Todo::getTitle)
 				.containsExactly("Recente", "Intermediária", "Antiga");
 	}
 
 	@Test
 	void deveFiltrarPendentesMantendoAOrdem() {
-		List<Todo> pendentes = repository.findByOwnerIdAndCompletedOrderByCreatedAtDesc(ana.getId(), false);
+		List<Todo> pendentes = repository.findByOwnerIdAndCompleted(ana.getId(), false, RECENTES).getContent();
 
 		assertThat(pendentes).extracting(Todo::getTitle).containsExactly("Recente", "Antiga");
 		assertThat(pendentes).allMatch(todo -> !todo.isCompleted());
@@ -68,15 +74,25 @@ class TodoRepositoryTest {
 
 	@Test
 	void deveFiltrarConcluidas() {
-		List<Todo> concluidas = repository.findByOwnerIdAndCompletedOrderByCreatedAtDesc(ana.getId(), true);
+		List<Todo> concluidas = repository.findByOwnerIdAndCompleted(ana.getId(), true, RECENTES).getContent();
 
 		assertThat(concluidas).extracting(Todo::getTitle).containsExactly("Intermediária");
 	}
 
 	@Test
 	void deveListarSoAsTarefasDoDono() {
-		assertThat(repository.findByOwnerIdOrderByCreatedAtDesc(bruno.getId()))
+		assertThat(repository.findByOwnerId(bruno.getId(), RECENTES))
 				.extracting(Todo::getTitle).containsExactly("De Bruno");
+	}
+
+	@Test
+	void devePaginarMantendoAOrdem() {
+		Page<Todo> segunda = repository.findByOwnerId(ana.getId(),
+				PageRequest.of(1, 2, Sort.by(Sort.Direction.DESC, "createdAt")));
+
+		assertThat(segunda).extracting(Todo::getTitle).containsExactly("Antiga");
+		assertThat(segunda.getTotalElements()).isEqualTo(3);
+		assertThat(segunda.getTotalPages()).isEqualTo(2);
 	}
 
 	@Test
@@ -89,7 +105,7 @@ class TodoRepositoryTest {
 	void deveRetornarListaVaziaQuandoNaoHaTarefas() {
 		repository.deleteAll();
 
-		assertThat(repository.findByOwnerIdOrderByCreatedAtDesc(ana.getId())).isEmpty();
+		assertThat(repository.findByOwnerId(ana.getId(), RECENTES)).isEmpty();
 	}
 
 	private Todo salvar(String title, boolean completed) {

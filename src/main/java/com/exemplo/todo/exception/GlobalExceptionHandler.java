@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -58,6 +60,19 @@ public class GlobalExceptionHandler {
 		return build(HttpStatus.UNAUTHORIZED, "Sessão inválida; entre novamente", request, null);
 	}
 
+	@ExceptionHandler(TooManyLoginAttemptsException.class)
+	public ResponseEntity<ErrorResponse> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
+			HttpServletRequest request) {
+		// arredonda para cima: o cliente nunca é mandado tentar de novo antes do desbloqueio
+		long seconds = Math.max(1, (ex.getRetryAfter().toMillis() + 999) / 1000);
+		long minutes = (seconds + 59) / 60;
+		String message = "Muitas tentativas de login. Tente de novo em " + minutes
+				+ (minutes == 1 ? " minuto." : " minutos.");
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+				.body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, message, request.getRequestURI(), null));
+	}
+
 	@ExceptionHandler(InvalidFieldException.class)
 	public ResponseEntity<ErrorResponse> handleInvalidField(InvalidFieldException ex, HttpServletRequest request) {
 		return build(HttpStatus.BAD_REQUEST, "Dados inválidos", request,
@@ -69,6 +84,18 @@ public class GlobalExceptionHandler {
 			HttpServletRequest request) {
 		List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
 				.map(error -> new FieldError(error.getField(), error.getDefaultMessage()))
+				.toList();
+		return build(HttpStatus.BAD_REQUEST, "Dados inválidos", request, fieldErrors);
+	}
+
+	// restrições em parâmetros de query, como page e size na listagem de tarefas
+	@ExceptionHandler(HandlerMethodValidationException.class)
+	public ResponseEntity<ErrorResponse> handleParameterValidation(HandlerMethodValidationException ex,
+			HttpServletRequest request) {
+		List<FieldError> fieldErrors = ex.getParameterValidationResults().stream()
+				.flatMap(result -> result.getResolvableErrors().stream()
+						.map(error -> new FieldError(result.getMethodParameter().getParameterName(),
+								error.getDefaultMessage())))
 				.toList();
 		return build(HttpStatus.BAD_REQUEST, "Dados inválidos", request, fieldErrors);
 	}

@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +28,7 @@ import com.exemplo.todo.dto.RegisterRequest;
 import com.exemplo.todo.dto.UserResponse;
 import com.exemplo.todo.model.User;
 import com.exemplo.todo.security.AppUserPrincipal;
+import com.exemplo.todo.security.LoginAttemptLimiter;
 import com.exemplo.todo.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,15 +48,17 @@ public class AuthController {
 	private final SecurityContextRepository securityContextRepository;
 	private final CsrfTokenRepository csrfTokenRepository;
 	private final ObjectProvider<ClientRegistrationRepository> googleRegistrations;
+	private final LoginAttemptLimiter loginAttempts;
 
 	public AuthController(UserService userService, AuthenticationManager authenticationManager,
 			SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository,
-			ObjectProvider<ClientRegistrationRepository> googleRegistrations) {
+			ObjectProvider<ClientRegistrationRepository> googleRegistrations, LoginAttemptLimiter loginAttempts) {
 		this.userService = userService;
 		this.authenticationManager = authenticationManager;
 		this.securityContextRepository = securityContextRepository;
 		this.csrfTokenRepository = csrfTokenRepository;
 		this.googleRegistrations = googleRegistrations;
+		this.loginAttempts = loginAttempts;
 	}
 
 	@PostMapping("/register")
@@ -69,11 +74,21 @@ public class AuthController {
 	@PostMapping("/login")
 	public UserResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request,
 			HttpServletResponse response) {
-		if (UserService.exceedsPasswordLimit(body.password())) {
-			throw new BadCredentialsException("senha maior que o limite do BCrypt");
+		// em produção, o IP vem do X-Forwarded-For repassado pelo proxy (server.forward-headers-strategy)
+		String ip = request.getRemoteAddr();
+		loginAttempts.checkAllowed(body.email(), ip);
+		Authentication authentication;
+		try {
+			if (UserService.exceedsPasswordLimit(body.password())) {
+				throw new BadCredentialsException("senha maior que o limite do BCrypt");
+			}
+			authentication = authenticationManager.authenticate(
+					UsernamePasswordAuthenticationToken.unauthenticated(body.email(), body.password()));
+		} catch (AuthenticationException ex) {
+			loginAttempts.recordFailure(body.email(), ip);
+			throw ex;
 		}
-		var authentication = authenticationManager.authenticate(
-				UsernamePasswordAuthenticationToken.unauthenticated(body.email(), body.password()));
+		loginAttempts.recordSuccess(body.email());
 		AppUserPrincipal principal = (AppUserPrincipal) authentication.getPrincipal();
 		startSession(principal, request, response);
 		return UserResponse.from(userService.getById(principal.getId()));

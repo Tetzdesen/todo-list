@@ -34,6 +34,8 @@ Cada pessoa tem a própria lista de tarefas. Dá para entrar de duas formas:
 - **E-mail e senha**: crie a conta na aba **Criar conta** da tela de entrada (senha de 8 a 72 caracteres).
 - **Google**: o botão **Continuar com Google** só aparece quando as credenciais do Google estão configuradas (veja abaixo). Se o e-mail verificado do Google já tiver uma conta com senha, a conta passa a ser do Google e a senha deixa de valer: o cadastro com senha não confirma o e-mail, então quem o criou pode não ser o dono do endereço.
 
+Depois de 5 senhas erradas para o mesmo e-mail, ou de 20 tentativas erradas vindas do mesmo IP, o login fica bloqueado por até 15 minutos (resposta `429` com o cabeçalho `Retry-After`). As contagens ficam na memória da aplicação e zeram a cada reinício.
+
 Sem login, a interface leva para a tela de entrada e a API responde `401`. A interface web, o Swagger UI e o console H2 abrem sem login; só os dados exigem autenticação.
 
 ### Login com Google (opcional)
@@ -96,7 +98,7 @@ Cada usuário só vê e altera as próprias tarefas; uma tarefa de outra pessoa 
 
 | Método   | Caminho                    | Descrição                                          | Sucesso          |
 |----------|----------------------------|----------------------------------------------------|------------------|
-| `GET`    | `/api/todos`               | Lista as tarefas (da mais recente para a mais antiga); filtro opcional `?completed=true\|false` | `200 OK` |
+| `GET`    | `/api/todos`               | Lista as tarefas em páginas (da mais recente para a mais antiga); parâmetros opcionais `completed=true\|false`, `page` (a partir de 0) e `size` (1 a 100, padrão 20) | `200 OK` |
 | `GET`    | `/api/todos/{id}`          | Busca uma tarefa                                   | `200 OK`         |
 | `POST`   | `/api/todos`               | Cria uma tarefa (`title` obrigatório, `description` opcional) | `201 Created` + `Location` |
 | `PUT`    | `/api/todos/{id}`          | Atualiza `title`, `description` e `completed` (se `completed` for omitido, o valor atual é mantido) | `200 OK` |
@@ -109,16 +111,31 @@ A autenticação usa o cookie de sessão (`JSESSIONID`). Requisições que alter
 
 No **Swagger UI**, entre antes pela interface web na mesma janela do navegador (o cookie de sessão é enviado sozinho) e, nas operações que alteram dados, copie o valor do cookie `XSRF-TOKEN` (DevTools → Application → Cookies) para um cabeçalho `X-XSRF-TOKEN`.
 
+### Paginação
+
+`GET /api/todos` devolve uma página:
+
+```json
+{
+  "content": [ { "id": 3, "title": "Comprar pão", "...": "..." } ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 42,
+  "totalPages": 3
+}
+```
+
 ### Regras de validação
 
 - `title`: obrigatório, não pode ser vazio nem só espaços e tem no máximo 100 caracteres.
 - `description`: opcional, com no máximo 500 caracteres.
 - `id`, `completed`, `createdAt` e `updatedAt` enviados no `POST` são ignorados.
+- Listagem: `page` a partir de 0 e `size` de 1 a 100.
 - Cadastro: `name` obrigatório (até 100 caracteres), `email` válido (até 254, único sem diferenciar maiúsculas) e `password` com 8 a 72 caracteres (no máximo 72 bytes: letras acentuadas contam 2).
 
 ### Formato de erro
 
-Todas as respostas 4xx usam o mesmo formato. Erros de validação incluem também `fieldErrors`:
+Todas as respostas de erro usam o mesmo formato (erros inesperados são `500`, sem detalhes internos). Erros de validação incluem também `fieldErrors`:
 
 ```json
 {
@@ -143,6 +160,7 @@ Todas as respostas 4xx usam o mesmo formato. Erros de validação incluem també
 | Método HTTP não suportado no caminho      | `405`  |
 | E-mail já cadastrado                      | `409`  |
 | `Content-Type` diferente de JSON          | `415`  |
+| Muitas tentativas de login erradas        | `429`  |
 
 ## Exemplos com `curl`
 
@@ -173,11 +191,12 @@ curl -i -b cookies.txt -X POST http://localhost:8080/api/todos \
   -d '{"title": "Estudar Spring", "description": "Capítulo 3"}'
 ```
 
-Listar todas as tarefas e listar só as pendentes:
+Listar as tarefas, só as pendentes e a segunda página de 10 em 10:
 
 ```bash
 curl -b cookies.txt http://localhost:8080/api/todos
 curl -b cookies.txt 'http://localhost:8080/api/todos?completed=false'
+curl -b cookies.txt 'http://localhost:8080/api/todos?page=1&size=10'
 ```
 
 Buscar uma tarefa:
@@ -230,11 +249,12 @@ src/main/java/com/exemplo/todo
 ├── repository/   TodoRepository, UserRepository
 ├── model/        Todo, User
 ├── security/     SecurityConfig, AppUserPrincipal, AppUserDetailsService, GoogleOAuthConfig,
-│                 GoogleOidcUserService, JsonSecurityErrorHandler
+│                 GoogleOidcUserService, JsonSecurityErrorHandler, LoginAttemptLimiter
 ├── dto/          TodoCreateRequest, TodoUpdateRequest, TodoResponse, RegisterRequest, LoginRequest,
-│                 UserResponse, ErrorResponse, FieldError
+│                 UserResponse, PageResponse, ErrorResponse, FieldError
 └── exception/    TodoNotFoundException, EmailAlreadyUsedException, InvalidFieldException,
-                  GoogleLoginException, AccountNotFoundException, GlobalExceptionHandler
+                  GoogleLoginException, AccountNotFoundException, TooManyLoginAttemptsException,
+                  GlobalExceptionHandler
 
 src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório)
 

@@ -77,7 +77,7 @@ class TodoApiIntegrationTest {
 
 		mockMvc.perform(get("/api/todos").param("completed", "true").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[?(@.id == " + id + ")]", hasSize(1)));
+				.andExpect(jsonPath("$.content[?(@.id == " + id + ")]", hasSize(1)));
 
 		// atualizar sem "completed": o valor atual (true) deve ser mantido
 		MvcResult atualizado = mockMvc.perform(put("/api/todos/{id}", id).session(session).with(csrf)
@@ -125,8 +125,9 @@ class TodoApiIntegrationTest {
 
 		mockMvc.perform(get("/api/todos").session(ana))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(2)))
-				.andExpect(jsonPath("$[*].title", containsInAnyOrder("Tarefa 1 de Ana", "Tarefa 2 de Ana")));
+				.andExpect(jsonPath("$.content", hasSize(2)))
+				.andExpect(jsonPath("$.totalElements").value(2))
+				.andExpect(jsonPath("$.content[*].title", containsInAnyOrder("Tarefa 1 de Ana", "Tarefa 2 de Ana")));
 
 		// tarefa de outro usuário se comporta como inexistente, em todas as operações
 		mockMvc.perform(get("/api/todos/{id}", deBruno).session(ana)).andExpect(status().isNotFound());

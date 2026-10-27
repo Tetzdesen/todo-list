@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -38,6 +39,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.exemplo.todo.dto.PageResponse;
 import com.exemplo.todo.dto.TodoCreateRequest;
 import com.exemplo.todo.dto.TodoResponse;
 import com.exemplo.todo.dto.TodoUpdateRequest;
@@ -92,7 +94,7 @@ class TodoControllerTest {
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.status").value(401));
 
-		verify(service, never()).list(any(), any());
+		verify(service, never()).list(any(), any(), anyInt(), anyInt());
 	}
 
 	@Test
@@ -185,37 +187,72 @@ class TodoControllerTest {
 
 	@Test
 	void deveListarTodasAsTarefas() throws Exception {
-		when(service.list(USER_ID, null)).thenReturn(List.of(
+		when(service.list(USER_ID, null, 0, 20)).thenReturn(pagina(List.of(
 				todo(3L, "C", null, false),
 				todo(2L, "B", null, true),
-				todo(1L, "A", null, false)));
+				todo(1L, "A", null, false))));
 
 		mockMvc.perform(get("/api/todos"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(3)))
-				.andExpect(jsonPath("$[0].id").value(3))
-				.andExpect(jsonPath("$[2].id").value(1));
+				.andExpect(jsonPath("$.content", hasSize(3)))
+				.andExpect(jsonPath("$.content[0].id").value(3))
+				.andExpect(jsonPath("$.content[2].id").value(1))
+				.andExpect(jsonPath("$.page").value(0))
+				.andExpect(jsonPath("$.size").value(20))
+				.andExpect(jsonPath("$.totalElements").value(3))
+				.andExpect(jsonPath("$.totalPages").value(1));
+	}
+
+	@Test
+	void deveRepassarAPaginaPedida() throws Exception {
+		when(service.list(USER_ID, null, 2, 5)).thenReturn(new PageResponse<>(List.of(), 2, 5, 7, 2));
+
+		mockMvc.perform(get("/api/todos").param("page", "2").param("size", "5"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.page").value(2))
+				.andExpect(jsonPath("$.size").value(5));
+
+		verify(service).list(USER_ID, null, 2, 5);
+	}
+
+	@Test
+	void deveRecusarPaginacaoInvalida() throws Exception {
+		mockMvc.perform(get("/api/todos").param("size", "101"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("size"));
+
+		mockMvc.perform(get("/api/todos").param("size", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("size"));
+
+		mockMvc.perform(get("/api/todos").param("page", "-1"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("page"));
+
+		verify(service, never()).list(any(), any(), anyInt(), anyInt());
 	}
 
 	@Test
 	void deveFiltrarPorStatus() throws Exception {
-		when(service.list(USER_ID, false)).thenReturn(List.of(todo(1L, "A", null, false)));
+		when(service.list(USER_ID, false, 0, 20)).thenReturn(pagina(List.of(todo(1L, "A", null, false))));
 
 		mockMvc.perform(get("/api/todos").param("completed", "false"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].completed").value(false));
+				.andExpect(jsonPath("$.content", hasSize(1)))
+				.andExpect(jsonPath("$.content[0].completed").value(false));
 
-		verify(service).list(USER_ID, false);
+		verify(service).list(USER_ID, false, 0, 20);
 	}
 
 	@Test
 	void deveRetornarListaVazia() throws Exception {
-		when(service.list(USER_ID, null)).thenReturn(List.of());
+		when(service.list(USER_ID, null, 0, 20)).thenReturn(pagina(List.of()));
 
 		mockMvc.perform(get("/api/todos"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(0)));
+				.andExpect(jsonPath("$.content", hasSize(0)))
+				.andExpect(jsonPath("$.totalElements").value(0))
+				.andExpect(jsonPath("$.totalPages").value(0));
 	}
 
 	@Test
@@ -393,6 +430,11 @@ class TodoControllerTest {
 
 	private static TodoResponse todo(Long id, String title, String description, boolean completed) {
 		return new TodoResponse(id, title, description, completed, CRIADO_EM, ATUALIZADO_EM);
+	}
+
+	// primeira página com o tamanho padrão (20), suficiente para as tarefas dos testes
+	private static PageResponse<TodoResponse> pagina(List<TodoResponse> todos) {
+		return new PageResponse<>(todos, 0, 20, todos.size(), todos.isEmpty() ? 0 : 1);
 	}
 
 }
