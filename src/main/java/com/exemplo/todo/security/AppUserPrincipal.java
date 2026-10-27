@@ -1,5 +1,6 @@
 package com.exemplo.todo.security;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,10 @@ import com.exemplo.todo.model.User;
  * {@link OidcUser} (Google), assim o restante da aplicação só precisa do {@link #getId() id} do usuário.
  */
 public class AppUserPrincipal implements UserDetails, OidcUser, CredentialsContainer {
+
+	// a sessão guardada no banco é serializada: mudar os campos desta classe invalida as sessões abertas
+	@Serial
+	private static final long serialVersionUID = 1L;
 
 	private static final List<GrantedAuthority> AUTHORITIES = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 

@@ -63,7 +63,7 @@ Com a aplicação rodando via `./mvnw spring-boot:run`, alterações nesses arqu
 ./mvnw verify   # build completo
 ```
 
-Os testes usam H2, exceto o `PostgresIntegrationTest`, que sobe um PostgreSQL com [Testcontainers](https://testcontainers.com) para conferir as migrações e o schema como em produção. Ele precisa de Docker: sem Docker, é pulado na sua máquina, mas no CI roda sempre (e falha se não houver Docker).
+Os testes usam H2, exceto `PostgresIntegrationTest` e `PostgresSessionPersistenceTest`, que sobem um PostgreSQL com [Testcontainers](https://testcontainers.com) para conferir as migrações, o schema e as sessões como em produção. Eles precisam de Docker: sem Docker, são pulados na sua máquina, mas no CI rodam sempre (e falham se não houver Docker).
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda `./mvnw verify` a cada push na `main` e em cada pull request.
 
@@ -81,7 +81,7 @@ O schema do banco é criado e atualizado pelas migrações do Flyway em `src/mai
 
 Um banco criado antes do Flyway (pelo antigo `ddl-auto=update`) é marcado como versão 1 no primeiro deploy, e as migrações seguintes rodam normalmente. A `V2` **apaga as tarefas sem dono** (criadas antes das contas de usuário) e torna o dono obrigatório. Para guardar essas tarefas, rode antes do deploy `UPDATE todos SET owner_id = <id do usuário> WHERE owner_id IS NULL;`.
 
-As sessões ficam na memória da aplicação: a cada deploy ou reinício, todos precisam entrar de novo.
+Em produção, as sessões ficam no PostgreSQL ([Spring Session JDBC](https://docs.spring.io/spring-session/reference/), tabelas criadas pela migração `V4`): deploys e reinícios não deslogam ninguém. Localmente, elas ficam na memória, como o banco H2. Sessões guardadas são objetos Java serializados: uma atualização do Spring Security que mude essas classes pode invalidar as sessões abertas, e quem estiver logado só precisa entrar de novo.
 
 ## Endpoints
 
@@ -110,7 +110,7 @@ Cada usuário só vê e altera as próprias tarefas; uma tarefa de outra pessoa 
 
 ### Sessão e token CSRF
 
-A autenticação usa o cookie de sessão (`JSESSIONID`). Requisições que alteram dados (`POST`, `PUT`, `PATCH`, `DELETE`), inclusive cadastro, login e logout, precisam também do token anti-CSRF: o servidor o entrega no cookie `XSRF-TOKEN` (por exemplo, ao chamar `GET /api/auth/providers`) e ele deve voltar no cabeçalho `X-XSRF-TOKEN`. Sem o token, a resposta é `403`.
+A autenticação usa o cookie de sessão (`JSESSIONID` localmente, `SESSION` em produção). Requisições que alteram dados (`POST`, `PUT`, `PATCH`, `DELETE`), inclusive cadastro, login e logout, precisam também do token anti-CSRF: o servidor o entrega no cookie `XSRF-TOKEN` (por exemplo, ao chamar `GET /api/auth/providers`) e ele deve voltar no cabeçalho `X-XSRF-TOKEN`. Sem o token, a resposta é `403`.
 
 No **Swagger UI**, entre antes pela interface web na mesma janela do navegador (o cookie de sessão é enviado sozinho) e, nas operações que alteram dados, copie o valor do cookie `XSRF-TOKEN` (DevTools → Application → Cookies) para um cabeçalho `X-XSRF-TOKEN`.
 
@@ -271,7 +271,7 @@ src/main/java/com/exemplo/todo
                   GoogleLoginException, AccountNotFoundException, TooManyLoginAttemptsException,
                   TodoConflictException, Problems, GlobalExceptionHandler
 
-src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório, V3 versão da tarefa)
+src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório, V3 versão da tarefa, V4 sessões)
 
 src/main/resources/static
 ├── index.html      lista de tarefas
