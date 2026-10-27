@@ -10,7 +10,8 @@ public record TodoResponse(
 		String description,
 		boolean completed,
 		Instant createdAt,
-		Instant updatedAt) {
+		Instant updatedAt,
+		Long version) {
 
 	public static TodoResponse from(Todo todo) {
 		return new TodoResponse(
@@ -19,7 +20,8 @@ public record TodoResponse(
 				todo.getDescription(),
 				todo.isCompleted(),
 				todo.getCreatedAt(),
-				todo.getUpdatedAt());
+				todo.getUpdatedAt(),
+				todo.getVersion());
 	}
 
 }

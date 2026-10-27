@@ -10,6 +10,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -34,6 +35,19 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(TodoNotFoundException.class)
 	public ResponseEntity<ErrorResponse> handleNotFound(TodoNotFoundException ex, HttpServletRequest request) {
 		return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
+	}
+
+	@ExceptionHandler(TodoConflictException.class)
+	public ResponseEntity<ErrorResponse> handleConflict(TodoConflictException ex, HttpServletRequest request) {
+		return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+	}
+
+	// duas alterações da mesma tarefa ao mesmo tempo: a segunda a gravar perde
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ResponseEntity<ErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
+			HttpServletRequest request) {
+		return build(HttpStatus.CONFLICT, "A tarefa foi alterada em outro lugar. A lista foi recarregada; tente de novo.",
+				request, null);
 	}
 
 	@ExceptionHandler(EmailAlreadyUsedException.class)

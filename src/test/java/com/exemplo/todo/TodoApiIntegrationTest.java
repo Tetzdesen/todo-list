@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,17 +69,26 @@ class TodoApiIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.title").value("Estudar Spring"));
 
-		// toggle
-		mockMvc.perform(patch("/api/todos/{id}/toggle", id).session(session).with(csrf))
+		mockMvc.perform(get("/api/todos/{id}", id).session(session))
+				.andExpect(jsonPath("$.version").value(0));
+
+		// concluir: só o campo enviado muda e a versão sobe
+		mockMvc.perform(patch("/api/todos/{id}", id).session(session).with(csrf)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"completed": true, "version": 0}
+						"""))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.completed").value(true));
+				.andExpect(jsonPath("$.completed").value(true))
+				.andExpect(jsonPath("$.title").value("Estudar Spring"))
+				.andExpect(jsonPath("$.version").value(1));
 
 		mockMvc.perform(get("/api/todos").param("completed", "true").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content[?(@.id == " + id + ")]", hasSize(1)));
 
-		// atualizar sem "completed": o valor atual (true) deve ser mantido
-		MvcResult atualizado = mockMvc.perform(put("/api/todos/{id}", id).session(session).with(csrf)
+		// sem "completed": o valor atual (true) é mantido; "description": null apaga a descrição
+		MvcResult atualizado = mockMvc.perform(patch("/api/todos/{id}", id).session(session).with(csrf)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"title": "Novo título", "description": null}
@@ -89,19 +97,35 @@ class TodoApiIntegrationTest {
 				.andExpect(jsonPath("$.title").value("Novo título"))
 				.andExpect(jsonPath("$.description").isEmpty())
 				.andExpect(jsonPath("$.completed").value(true))
+				.andExpect(jsonPath("$.version").value(2))
 				.andReturn();
 
 		JsonNode bodyAtualizado = objectMapper.readTree(atualizado.getResponse().getContentAsString());
 		assertThat(Instant.parse(bodyAtualizado.get("createdAt").asText())).isEqualTo(createdAt);
 		assertThat(Instant.parse(bodyAtualizado.get("updatedAt").asText())).isAfterOrEqualTo(updatedAt);
 
-		// título longo demais não altera a tarefa
-		mockMvc.perform(put("/api/todos/{id}", id).session(session).with(csrf)
+		// versão antiga: outra aba alterou a tarefa depois da leitura
+		mockMvc.perform(patch("/api/todos/{id}", id).session(session).with(csrf)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"completed": false, "version": 1}
+						"""))
+				.andExpect(status().isConflict());
+
+		// título longo demais ou nulo não altera a tarefa
+		mockMvc.perform(patch("/api/todos/{id}", id).session(session).with(csrf)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"title\": \"" + "t".repeat(101) + "\"}"))
 				.andExpect(status().isBadRequest());
+		mockMvc.perform(patch("/api/todos/{id}", id).session(session).with(csrf)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"title\": null}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
 		mockMvc.perform(get("/api/todos/{id}", id).session(session))
-				.andExpect(jsonPath("$.title").value("Novo título"));
+				.andExpect(jsonPath("$.title").value("Novo título"))
+				.andExpect(jsonPath("$.completed").value(true))
+				.andExpect(jsonPath("$.version").value(2));
 
 		// remover
 		mockMvc.perform(delete("/api/todos/{id}", id).session(session).with(csrf))
@@ -131,11 +155,9 @@ class TodoApiIntegrationTest {
 
 		// tarefa de outro usuário se comporta como inexistente, em todas as operações
 		mockMvc.perform(get("/api/todos/{id}", deBruno).session(ana)).andExpect(status().isNotFound());
-		mockMvc.perform(put("/api/todos/{id}", deBruno).session(ana).with(csrf)
+		mockMvc.perform(patch("/api/todos/{id}", deBruno).session(ana).with(csrf)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"title\": \"Invadida\"}"))
-				.andExpect(status().isNotFound());
-		mockMvc.perform(patch("/api/todos/{id}/toggle", deBruno).session(ana).with(csrf))
+				.content("{\"title\": \"Invadida\", \"completed\": true}"))
 				.andExpect(status().isNotFound());
 		mockMvc.perform(delete("/api/todos/{id}", deBruno).session(ana).with(csrf))
 				.andExpect(status().isNotFound());

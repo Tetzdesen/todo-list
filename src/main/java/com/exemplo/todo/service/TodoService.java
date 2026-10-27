@@ -8,8 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.exemplo.todo.dto.PageResponse;
 import com.exemplo.todo.dto.TodoCreateRequest;
+import com.exemplo.todo.dto.TodoPatchRequest;
 import com.exemplo.todo.dto.TodoResponse;
-import com.exemplo.todo.dto.TodoUpdateRequest;
+import com.exemplo.todo.exception.InvalidFieldException;
+import com.exemplo.todo.exception.TodoConflictException;
 import com.exemplo.todo.exception.TodoNotFoundException;
 import com.exemplo.todo.model.Todo;
 import com.exemplo.todo.repository.TodoRepository;
@@ -50,21 +52,28 @@ public class TodoService {
 	}
 
 	@Transactional
-	public TodoResponse update(Long userId, Long id, TodoUpdateRequest request) {
-		Todo todo = getTodo(userId, id);
-		todo.setTitle(request.title());
-		todo.setDescription(request.description());
-		if (request.completed() != null) {
-			todo.setCompleted(request.completed());
+	public TodoResponse update(Long userId, Long id, TodoPatchRequest request) {
+		// título e conclusão não podem ser apagados; a descrição pode
+		if (request.hasTitle() && request.getTitle() == null) {
+			throw new InvalidFieldException("title", "não deve ser nulo");
 		}
-		// flush para o @UpdateTimestamp ser aplicado antes de montar a resposta
-		return TodoResponse.from(repository.saveAndFlush(todo));
-	}
-
-	@Transactional
-	public TodoResponse toggle(Long userId, Long id) {
+		if (request.hasCompleted() && request.getCompleted() == null) {
+			throw new InvalidFieldException("completed", "não deve ser nulo");
+		}
 		Todo todo = getTodo(userId, id);
-		todo.setCompleted(!todo.isCompleted());
+		if (request.getVersion() != null && !request.getVersion().equals(todo.getVersion())) {
+			throw new TodoConflictException(id);
+		}
+		if (request.hasTitle()) {
+			todo.setTitle(request.getTitle());
+		}
+		if (request.hasDescription()) {
+			todo.setDescription(request.getDescription());
+		}
+		if (request.hasCompleted()) {
+			todo.setCompleted(request.getCompleted());
+		}
+		// flush para o @UpdateTimestamp e a nova versão serem aplicados antes de montar a resposta
 		return TodoResponse.from(repository.saveAndFlush(todo));
 	}
 

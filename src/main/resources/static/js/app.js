@@ -59,8 +59,8 @@ const api = {
 		}
 	},
 	create: (data) => request(API_URL, { method: 'POST', body: JSON.stringify(data) }),
-	update: (id, data) => request(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-	toggle: (id) => request(`${API_URL}/${id}/toggle`, { method: 'PATCH' }),
+	// alteração parcial; a versão faz o servidor recusar (409) se a tarefa mudou em outra aba
+	update: (id, data) => request(`${API_URL}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 	remove: (id) => request(`${API_URL}/${id}`, { method: 'DELETE' }),
 	me: () => request('/api/auth/me'),
 	logout: () => request('/api/auth/logout', { method: 'POST' }),
@@ -133,7 +133,8 @@ async function handleError(error, form) {
 		return;
 	}
 	showBanner(error.message);
-	if (error.status === 404) {
+	// 404: a tarefa foi removida; 409: foi alterada em outro lugar. Nos dois casos, a lista é recarregada
+	if (error.status === 404 || error.status === 409) {
 		state.editingId = null;
 		state.confirmingId = null;
 		await loadTodos({ keepBanner: true });
@@ -269,7 +270,7 @@ async function createTodo(event) {
 async function saveEdit(form, id) {
 	const todo = findTodo(id);
 	try {
-		await api.update(id, { ...readForm(form), completed: todo.completed });
+		await api.update(id, { ...readForm(form), version: todo.version });
 		state.editingId = null;
 		await loadTodos();
 	} catch (error) {
@@ -279,7 +280,8 @@ async function saveEdit(form, id) {
 
 async function toggleTodo(id) {
 	try {
-		await api.toggle(id);
+		const todo = findTodo(id);
+		await api.update(id, { completed: !todo.completed, version: todo.version });
 		await loadTodos();
 	} catch (error) {
 		await handleError(error);

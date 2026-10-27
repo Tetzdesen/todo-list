@@ -1,5 +1,6 @@
 package com.exemplo.todo.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
@@ -28,6 +29,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -42,7 +44,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.exemplo.todo.dto.PageResponse;
 import com.exemplo.todo.dto.TodoCreateRequest;
 import com.exemplo.todo.dto.TodoResponse;
-import com.exemplo.todo.dto.TodoUpdateRequest;
+import com.exemplo.todo.dto.TodoPatchRequest;
+import com.exemplo.todo.exception.TodoConflictException;
 import com.exemplo.todo.exception.TodoNotFoundException;
 import com.exemplo.todo.model.User;
 import com.exemplo.todo.security.AppUserDetailsService;
@@ -292,33 +295,71 @@ class TodoControllerTest {
 	}
 
 	@Test
-	void deveAtualizarTarefa() throws Exception {
-		TodoUpdateRequest request = new TodoUpdateRequest("Novo título", null, true);
-		when(service.update(USER_ID, 1L, request)).thenReturn(todo(1L, "Novo título", null, true));
+	void deveAtualizarTarefaParcialmente() throws Exception {
+		when(service.update(eq(USER_ID), eq(1L), any())).thenReturn(todo(1L, "A", null, true));
 
-		mockMvc.perform(put("/api/todos/1")
+		mockMvc.perform(patch("/api/todos/1")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
-						{"title": "Novo título", "description": null, "completed": true}
+						{"completed": true, "version": 0}
 						"""))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.title").value("Novo título"))
-				.andExpect(jsonPath("$.description").isEmpty())
-				.andExpect(jsonPath("$.completed").value(true));
+				.andExpect(jsonPath("$.completed").value(true))
+				.andExpect(jsonPath("$.version").value(0));
+
+		ArgumentCaptor<TodoPatchRequest> captor = ArgumentCaptor.forClass(TodoPatchRequest.class);
+		verify(service).update(eq(USER_ID), eq(1L), captor.capture());
+		TodoPatchRequest recebido = captor.getValue();
+		assertThat(recebido.hasCompleted()).isTrue();
+		assertThat(recebido.getCompleted()).isTrue();
+		assertThat(recebido.getVersion()).isZero();
+		assertThat(recebido.hasTitle()).isFalse();
+		assertThat(recebido.hasDescription()).isFalse();
 	}
 
 	@Test
-	void deveRejeitarAtualizacaoComTituloDe101Caracteres() throws Exception {
-		String titulo = "t".repeat(101);
+	void deveDiferenciarDescricaoNulaDeAusente() throws Exception {
+		when(service.update(eq(USER_ID), eq(1L), any())).thenReturn(todo(1L, "A", null, false));
 
-		mockMvc.perform(put("/api/todos/1")
+		mockMvc.perform(patch("/api/todos/1")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"title\": \"" + titulo + "\"}"))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.path").value("/api/todos/1"))
-				.andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
+				.content("""
+						{"description": null}
+						"""))
+				.andExpect(status().isOk());
+
+		ArgumentCaptor<TodoPatchRequest> captor = ArgumentCaptor.forClass(TodoPatchRequest.class);
+		verify(service).update(eq(USER_ID), eq(1L), captor.capture());
+		assertThat(captor.getValue().hasDescription()).isTrue();
+		assertThat(captor.getValue().getDescription()).isNull();
+	}
+
+	@Test
+	void deveRejeitarTituloInvalidoNaAtualizacao() throws Exception {
+		for (String titulo : new String[] { "t".repeat(101), "   " }) {
+			mockMvc.perform(patch("/api/todos/1")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"title\": \"" + titulo + "\"}"))
+					.andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.path").value("/api/todos/1"))
+					.andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
+		}
 
 		verify(service, never()).update(any(), any(), any());
+	}
+
+	@Test
+	void deveResponder409QuandoATarefaMudouEmOutroLugar() throws Exception {
+		when(service.update(eq(USER_ID), eq(1L), any())).thenThrow(new TodoConflictException(1L));
+
+		mockMvc.perform(patch("/api/todos/1")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"completed": true, "version": 3}
+						"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.status").value(409))
+				.andExpect(jsonPath("$.path").value("/api/todos/1"));
 	}
 
 	@Test
@@ -347,7 +388,7 @@ class TodoControllerTest {
 	void deveRetornar404AoAtualizarIdInexistente() throws Exception {
 		when(service.update(eq(USER_ID), eq(999L), any())).thenThrow(new TodoNotFoundException(999L));
 
-		mockMvc.perform(put("/api/todos/999")
+		mockMvc.perform(patch("/api/todos/999")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"title": "X"}
@@ -356,28 +397,13 @@ class TodoControllerTest {
 	}
 
 	@Test
-	void deveAlternarConclusaoSemCorpo() throws Exception {
-		when(service.toggle(USER_ID, 1L)).thenReturn(todo(1L, "A", null, true));
+	void naoDeveExistirMaisPutNemToggle() throws Exception {
+		mockMvc.perform(put("/api/todos/1")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"title\": \"X\"}"))
+				.andExpect(status().isMethodNotAllowed());
 
 		mockMvc.perform(patch("/api/todos/1/toggle"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.completed").value(true));
-	}
-
-	@Test
-	void deveReabrirTarefaConcluida() throws Exception {
-		when(service.toggle(USER_ID, 1L)).thenReturn(todo(1L, "A", null, false));
-
-		mockMvc.perform(patch("/api/todos/1/toggle"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.completed").value(false));
-	}
-
-	@Test
-	void deveRetornar404AoAlternarIdInexistente() throws Exception {
-		when(service.toggle(USER_ID, 999L)).thenThrow(new TodoNotFoundException(999L));
-
-		mockMvc.perform(patch("/api/todos/999/toggle"))
 				.andExpect(status().isNotFound());
 	}
 
@@ -429,7 +455,7 @@ class TodoControllerTest {
 	}
 
 	private static TodoResponse todo(Long id, String title, String description, boolean completed) {
-		return new TodoResponse(id, title, description, completed, CRIADO_EM, ATUALIZADO_EM);
+		return new TodoResponse(id, title, description, completed, CRIADO_EM, ATUALIZADO_EM, 0L);
 	}
 
 	// primeira página com o tamanho padrão (20), suficiente para as tarefas dos testes

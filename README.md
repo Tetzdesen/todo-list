@@ -101,8 +101,7 @@ Cada usuário só vê e altera as próprias tarefas; uma tarefa de outra pessoa 
 | `GET`    | `/api/todos`               | Lista as tarefas em páginas (da mais recente para a mais antiga); parâmetros opcionais `completed=true\|false`, `page` (a partir de 0) e `size` (1 a 100, padrão 20) | `200 OK` |
 | `GET`    | `/api/todos/{id}`          | Busca uma tarefa                                   | `200 OK`         |
 | `POST`   | `/api/todos`               | Cria uma tarefa (`title` obrigatório, `description` opcional) | `201 Created` + `Location` |
-| `PUT`    | `/api/todos/{id}`          | Atualiza `title`, `description` e `completed` (se `completed` for omitido, o valor atual é mantido) | `200 OK` |
-| `PATCH`  | `/api/todos/{id}/toggle`   | Alterna entre concluída e pendente (sem corpo)     | `200 OK`         |
+| `PATCH`  | `/api/todos/{id}`          | Altera só os campos enviados (`title`, `description`, `completed`); `version` opcional evita sobrescrever mudanças de outra aba | `200 OK` |
 | `DELETE` | `/api/todos/{id}`          | Remove uma tarefa                                  | `204 No Content` |
 
 ### Sessão e token CSRF
@@ -125,11 +124,20 @@ No **Swagger UI**, entre antes pela interface web na mesma janela do navegador (
 }
 ```
 
+### Alteração e conflitos
+
+Cada tarefa tem um número `version`, que sobe a cada alteração. Mande no `PATCH` a `version` que você leu: se a tarefa mudou desde então (em outra aba, por exemplo), a resposta é `409` e nada é alterado. Sem `version`, a alteração é aplicada sobre o estado atual.
+
+```json
+{ "completed": true, "version": 3 }
+```
+
 ### Regras de validação
 
 - `title`: obrigatório, não pode ser vazio nem só espaços e tem no máximo 100 caracteres.
 - `description`: opcional, com no máximo 500 caracteres.
-- `id`, `completed`, `createdAt` e `updatedAt` enviados no `POST` são ignorados.
+- `id`, `completed`, `createdAt`, `updatedAt` e `version` enviados no `POST` são ignorados.
+- `PATCH`: campos ausentes não mudam; `"description": null` apaga a descrição; `title` e `completed` não podem ser `null`.
 - Listagem: `page` a partir de 0 e `size` de 1 a 100.
 - Cadastro: `name` obrigatório (até 100 caracteres), `email` válido (até 254, único sem diferenciar maiúsculas) e `password` com 8 a 72 caracteres (no máximo 72 bytes: letras acentuadas contam 2).
 
@@ -158,7 +166,7 @@ Todas as respostas de erro usam o mesmo formato (erros inesperados são `500`, s
 | Token CSRF ausente ou inválido            | `403`  |
 | Tarefa inexistente, de outro usuário, ou rota inexistente | `404`  |
 | Método HTTP não suportado no caminho      | `405`  |
-| E-mail já cadastrado                      | `409`  |
+| E-mail já cadastrado, ou tarefa alterada em outro lugar (`version` antiga) | `409`  |
 | `Content-Type` diferente de JSON          | `415`  |
 | Muitas tentativas de login erradas        | `429`  |
 
@@ -205,18 +213,20 @@ Buscar uma tarefa:
 curl -b cookies.txt http://localhost:8080/api/todos/1
 ```
 
-Atualizar uma tarefa:
+Mudar o título e apagar a descrição:
 
 ```bash
-curl -b cookies.txt -X PUT http://localhost:8080/api/todos/1 \
+curl -b cookies.txt -X PATCH http://localhost:8080/api/todos/1 \
   -H "X-XSRF-TOKEN: $(csrf)" -H 'Content-Type: application/json' \
-  -d '{"title": "Estudar Spring Boot", "description": null, "completed": true}'
+  -d '{"title": "Estudar Spring Boot", "description": null}'
 ```
 
-Alternar a conclusão:
+Concluir, só se ninguém alterou a tarefa desde a leitura da versão 0:
 
 ```bash
-curl -b cookies.txt -X PATCH http://localhost:8080/api/todos/1/toggle -H "X-XSRF-TOKEN: $(csrf)"
+curl -b cookies.txt -X PATCH http://localhost:8080/api/todos/1 \
+  -H "X-XSRF-TOKEN: $(csrf)" -H 'Content-Type: application/json' \
+  -d '{"completed": true, "version": 0}'
 ```
 
 Remover uma tarefa:
@@ -250,13 +260,13 @@ src/main/java/com/exemplo/todo
 ├── model/        Todo, User
 ├── security/     SecurityConfig, AppUserPrincipal, AppUserDetailsService, GoogleOAuthConfig,
 │                 GoogleOidcUserService, JsonSecurityErrorHandler, LoginAttemptLimiter
-├── dto/          TodoCreateRequest, TodoUpdateRequest, TodoResponse, RegisterRequest, LoginRequest,
+├── dto/          TodoCreateRequest, TodoPatchRequest, TodoResponse, RegisterRequest, LoginRequest,
 │                 UserResponse, PageResponse, ErrorResponse, FieldError
 └── exception/    TodoNotFoundException, EmailAlreadyUsedException, InvalidFieldException,
                   GoogleLoginException, AccountNotFoundException, TooManyLoginAttemptsException,
-                  GlobalExceptionHandler
+                  TodoConflictException, GlobalExceptionHandler
 
-src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório)
+src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório, V3 versão da tarefa)
 
 src/main/resources/static
 ├── index.html      lista de tarefas
