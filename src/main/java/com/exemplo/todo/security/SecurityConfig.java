@@ -28,7 +28,7 @@ public class SecurityConfig {
 
 	// páginas e arquivos estáticos não contêm dados: quem decide ir para a tela de entrada é o JavaScript
 	private static final String[] PUBLIC_PATHS = {
-			"/", "/index.html", "/login.html", "/css/**", "/js/**", "/favicon.ico",
+			"/", "/index.html", "/login.html", "/privacidade.html", "/css/**", "/js/**", "/favicon.ico",
 			"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error" };
 
 	@Bean

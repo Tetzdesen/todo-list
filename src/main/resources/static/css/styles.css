@@ -907,6 +907,35 @@ textarea.input {
 	color: var(--muted);
 }
 
+/* ---------- Política de privacidade ---------- */
+
+.policy {
+	max-width: 680px;
+	line-height: 1.6;
+}
+
+.policy h2 {
+	margin: 24px 0 8px;
+	font-size: 17px;
+}
+
+.policy p,
+.policy ul {
+	margin: 0 0 12px;
+}
+
+.policy ul {
+	padding-left: 20px;
+}
+
+.policy li + li {
+	margin-top: 6px;
+}
+
+.policy a {
+	color: var(--accent);
+}
+
 .auth-page .site-footer {
 	border-top: none;
 }

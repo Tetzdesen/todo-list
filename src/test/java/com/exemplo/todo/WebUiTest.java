@@ -55,6 +55,13 @@ class WebUiTest {
 	}
 
 	@Test
+	void deveServirPoliticaDePrivacidadeSemLogin() throws Exception {
+		mockMvc.perform(get("/privacidade.html"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("myaccount.google.com/permissions")));
+	}
+
+	@Test
 	void deveServirScriptsDaTelaDeEntradaSemLogin() throws Exception {
 		mockMvc.perform(get("/js/login.js"))
 				.andExpect(status().isOk())
