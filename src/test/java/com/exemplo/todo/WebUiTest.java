@@ -62,6 +62,13 @@ class WebUiTest {
 	}
 
 	@Test
+	void deveEncaminharEnderecoSemHtmlParaPoliticaDePrivacidade() throws Exception {
+		mockMvc.perform(get("/privacidade"))
+				.andExpect(status().isOk())
+				.andExpect(forwardedUrl("/privacidade.html"));
+	}
+
+	@Test
 	void deveServirScriptsDaTelaDeEntradaSemLogin() throws Exception {
 		mockMvc.perform(get("/js/login.js"))
 				.andExpect(status().isOk())
