@@ -6,7 +6,7 @@
 	<title>Tarefas</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Source+Sans+3:wght@400;600;700&display=swap">
 	<link rel="stylesheet" href="css/styles.css">
 	<script src="js/theme.js"></script>
 	<script type="module" src="js/app.js"></script>
@@ -14,68 +14,68 @@
 <body>
 	<!-- só aparece depois que app.js confirma a sessão -->
 	<div class="page" hidden>
-		<header class="header">
-			<div class="header-inner">
-				<a href="./" class="brand">
-					<span class="brand-mark" aria-hidden="true">
-						<svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>
-					</span>
-					Tarefas
-				</a>
-				<div class="header-actions">
-					<button type="button" class="icon-button theme-toggle" data-theme-toggle>
-						<svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A6.8 6.8 0 0 1 7.8 3.5a6.8 6.8 0 1 0 8.7 8.7Z"/></svg>
-						<svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3"/></svg>
-					</button>
-					<span class="header-separator" aria-hidden="true"></span>
-					<div class="account">
-						<span id="account-avatar" class="avatar" aria-hidden="true"></span>
-						<span id="account-name" class="account-name"></span>
+		<header class="band">
+			<div class="band-inner">
+				<div class="band-top">
+					<a href="./" class="brand brand-inverse">
+						<span class="brand-mark" aria-hidden="true">
+							<svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>
+						</span>
+						Tarefas
+					</a>
+					<div class="header-actions">
+						<button type="button" class="icon-button theme-toggle" data-theme-toggle>
+							<svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A6.8 6.8 0 0 1 7.8 3.5a6.8 6.8 0 1 0 8.7 8.7Z"/></svg>
+							<svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3"/></svg>
+						</button>
+						<div class="account">
+							<span id="account-avatar" class="avatar" aria-hidden="true"></span>
+							<span id="account-name" class="account-name"></span>
+						</div>
+						<button type="button" id="logout" class="button button-ghost button-small">Sair</button>
 					</div>
-					<button type="button" id="logout" class="button button-ghost button-small">Sair</button>
+				</div>
+
+				<div class="page-header">
+					<div>
+						<p id="today" class="today"></p>
+						<h1 class="page-title">Minhas tarefas</h1>
+					</div>
+					<div id="progress" class="progress" hidden>
+						<span id="progress-label" class="progress-label"></span>
+						<span class="progress-track" aria-hidden="true"><span id="progress-bar" class="progress-bar"></span></span>
+					</div>
 				</div>
 			</div>
 		</header>
 
 		<main class="container">
-			<div class="page-header">
-				<div>
-					<p id="today" class="eyebrow"></p>
-					<h1 class="page-title">Minhas tarefas</h1>
-				</div>
-				<div id="progress" class="progress" hidden>
-					<span id="progress-label" class="progress-label"></span>
-					<span class="progress-track" aria-hidden="true"><span id="progress-bar" class="progress-bar"></span></span>
-				</div>
-			</div>
-
 			<div id="error-banner" class="error-banner" role="alert" hidden>
 				<span id="error-message"></span>
 				<button type="button" id="error-close" class="button button-ghost button-small" aria-label="Fechar aviso">Fechar</button>
 			</div>
 
-			<form id="create-form" class="card composer" novalidate>
+			<!-- a nova tarefa é a próxima linha em branco da lista -->
+			<form id="create-form" class="composer" novalidate>
 				<h2 class="visually-hidden">Nova tarefa</h2>
-				<div class="composer-main">
-					<svg class="composer-plus" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11"/></svg>
-					<div class="field composer-fields">
-						<label for="create-title" class="visually-hidden">Título</label>
-						<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Adicionar uma tarefa">
-						<p class="field-error" data-error-for="title"></p>
-						<div class="field">
-							<label for="create-description" class="visually-hidden">Notas (opcional)</label>
-							<textarea id="create-description" name="description" rows="1" class="composer-notes" placeholder="Notas (opcional)"></textarea>
-							<p class="field-error" data-error-for="description"></p>
-						</div>
+				<span class="composer-box" aria-hidden="true"></span>
+				<div class="field composer-fields">
+					<label for="create-title" class="visually-hidden">Título</label>
+					<input id="create-title" name="title" type="text" class="composer-title" autocomplete="off" placeholder="Adicionar uma tarefa">
+					<p class="field-error" data-error-for="title"></p>
+					<div class="field">
+						<label for="create-description" class="visually-hidden">Notas (opcional)</label>
+						<textarea id="create-description" name="description" rows="1" class="composer-notes" placeholder="Notas (opcional)"></textarea>
+						<p class="field-error" data-error-for="description"></p>
 					</div>
-					<button type="submit" class="button button-primary button-small">Adicionar</button>
 				</div>
+				<button type="submit" class="button button-primary button-small">Adicionar</button>
 			</form>
 
 			<section aria-labelledby="list-heading">
 				<div class="toolbar">
 					<h2 id="list-heading" class="visually-hidden">Lista de tarefas</h2>
-					<nav class="segmented" aria-label="Filtrar tarefas">
+					<nav class="tabs" aria-label="Filtrar tarefas">
 						<button type="button" class="filter" data-filter="all" aria-pressed="true">
 							Todas <span class="count" data-count-for="all"></span>
 						</button>
@@ -89,23 +89,16 @@
 					<span class="toolbar-hint"><kbd>N</kbd> nova tarefa</span>
 				</div>
 
-				<div class="card list-card">
-					<ul id="todo-list" class="todo-list"></ul>
-					<div id="empty-message" class="empty-state" hidden>
-						<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
-						<p id="empty-text"></p>
-					</div>
+				<ul id="todo-list" class="todo-list"></ul>
+				<div id="empty-message" class="empty-state" hidden>
+					<p id="empty-text"></p>
 				</div>
 			</section>
 		</main>
 
 		<footer class="site-footer">
-			<span>Tarefas</span>
-			<span aria-hidden="true">·</span>
 			<a href="swagger-ui.html">Documentação da API</a>
-			<span aria-hidden="true">·</span>
 			<a href="https://github.com/Tetzdesen/todo-list" target="_blank" rel="noopener">GitHub</a>
-			<span aria-hidden="true">·</span>
 			<a href="privacidade.html">Privacidade</a>
 		</footer>
 	</div>
@@ -118,7 +111,7 @@
 					<svg class="check-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 8.5 2.6 2.6L12 5.5"/></svg>
 				</label>
 				<div class="todo-body">
-					<span class="todo-title"></span>
+					<span class="todo-title"><span></span></span>
 					<p class="todo-description"></p>
 				</div>
 				<time class="todo-created"></time>

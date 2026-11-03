@@ -6,56 +6,60 @@
 	<title>Política de Privacidade · Tarefas</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Source+Sans+3:wght@400;600;700&display=swap">
 	<link rel="stylesheet" href="css/styles.css">
 	<script src="js/theme.js"></script>
 </head>
-<body class="auth-page">
-	<header class="auth-header">
-		<a href="./" class="brand">
-			<span class="brand-mark" aria-hidden="true">
-				<svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>
-			</span>
-			Tarefas
-		</a>
-		<button type="button" class="icon-button theme-toggle" data-theme-toggle>
-			<svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A6.8 6.8 0 0 1 7.8 3.5a6.8 6.8 0 1 0 8.7 8.7Z"/></svg>
-			<svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3"/></svg>
-		</button>
+<body class="doc-page">
+	<header class="band">
+		<div class="band-inner band-narrow">
+			<div class="band-top">
+				<a href="./" class="brand brand-inverse">
+					<span class="brand-mark" aria-hidden="true">
+						<svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>
+					</span>
+					Tarefas
+				</a>
+				<button type="button" class="icon-button theme-toggle" data-theme-toggle>
+					<svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A6.8 6.8 0 0 1 7.8 3.5a6.8 6.8 0 1 0 8.7 8.7Z"/></svg>
+					<svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3"/></svg>
+				</button>
+			</div>
+			<div class="page-header">
+				<div>
+					<p class="today">Atualizada em 3 de novembro de 2026</p>
+					<h1 class="page-title">Política de Privacidade</h1>
+				</div>
+			</div>
+		</div>
 	</header>
 
-	<main class="auth">
-		<article class="card auth-card policy">
-			<h1 class="auth-title">Política de Privacidade</h1>
-			<p class="auth-subtitle">Última atualização: 3 de novembro de 2026</p>
+	<main class="container policy">
+		<p>O Tarefas é um projeto pessoal de lista de tarefas. Esta página explica quais dados ele guarda e para quê.</p>
 
-			<p>O Tarefas é um projeto pessoal de lista de tarefas. Esta página explica quais dados ele guarda e para quê.</p>
+		<h2>Dados que guardamos</h2>
+		<ul>
+			<li><strong>Conta:</strong> nome e e-mail. Se você criar a conta com senha, guardamos só o hash da senha, nunca a senha em si.</li>
+			<li><strong>Login com Google:</strong> nome, e-mail e o identificador da sua conta Google (escopos <code>openid</code>, <code>email</code> e <code>profile</code>). Não acessamos Gmail, Drive, contatos nem nenhum outro dado da sua conta Google.</li>
+			<li><strong>Tarefas:</strong> o título, a descrição e o status das tarefas que você cria.</li>
+			<li><strong>Sessão:</strong> um cookie de sessão para manter você conectado. Não usamos cookies de rastreamento nem de publicidade.</li>
+		</ul>
 
-			<h2>Dados que guardamos</h2>
-			<ul>
-				<li><strong>Conta:</strong> nome e e-mail. Se você criar a conta com senha, guardamos só o hash da senha, nunca a senha em si.</li>
-				<li><strong>Login com Google:</strong> nome, e-mail e o identificador da sua conta Google (escopos <code>openid</code>, <code>email</code> e <code>profile</code>). Não acessamos Gmail, Drive, contatos nem nenhum outro dado da sua conta Google.</li>
-				<li><strong>Tarefas:</strong> o título, a descrição e o status das tarefas que você cria.</li>
-				<li><strong>Sessão:</strong> um cookie de sessão para manter você conectado. Não usamos cookies de rastreamento nem de publicidade.</li>
-			</ul>
+		<h2>Como usamos</h2>
+		<p>Os dados servem apenas para identificar você no login e mostrar as suas tarefas. Não vendemos, não compartilhamos com terceiros e não usamos para publicidade. O uso das informações recebidas das APIs do Google segue a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de dados do usuário dos serviços de API do Google</a>, incluindo os requisitos de uso limitado.</p>
 
-			<h2>Como usamos</h2>
-			<p>Os dados servem apenas para identificar você no login e mostrar as suas tarefas. Não vendemos, não compartilhamos com terceiros e não usamos para publicidade. O uso das informações recebidas das APIs do Google segue a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de dados do usuário dos serviços de API do Google</a>, incluindo os requisitos de uso limitado.</p>
+		<h2>Onde ficam</h2>
+		<p>Os dados ficam em um banco PostgreSQL na hospedagem do aplicativo (Render), acessível só pelo próprio aplicativo.</p>
 
-			<h2>Onde ficam</h2>
-			<p>Os dados ficam em um banco PostgreSQL na hospedagem do aplicativo (Render), acessível só pelo próprio aplicativo.</p>
+		<h2>Exclusão</h2>
+		<p>Para excluir sua conta e todas as suas tarefas, envie um e-mail para <a href="mailto:gabrieltetznermenegueti16@gmail.com">gabrieltetznermenegueti16@gmail.com</a> a partir do endereço cadastrado. Você também pode revogar o acesso do aplicativo à sua conta Google em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
 
-			<h2>Exclusão</h2>
-			<p>Para excluir sua conta e todas as suas tarefas, envie um e-mail para <a href="mailto:gabrieltetznermenegueti16@gmail.com">gabrieltetznermenegueti16@gmail.com</a> a partir do endereço cadastrado. Você também pode revogar o acesso do aplicativo à sua conta Google em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
-
-			<h2>Contato</h2>
-			<p>Dúvidas sobre esta política: <a href="mailto:gabrieltetznermenegueti16@gmail.com">gabrieltetznermenegueti16@gmail.com</a>.</p>
-		</article>
+		<h2>Contato</h2>
+		<p>Dúvidas sobre esta política: <a href="mailto:gabrieltetznermenegueti16@gmail.com">gabrieltetznermenegueti16@gmail.com</a>.</p>
 	</main>
 
 	<footer class="site-footer">
 		<a href="./">Início</a>
-		<span aria-hidden="true">·</span>
 		<a href="https://github.com/Tetzdesen/todo-list" target="_blank" rel="noopener">GitHub</a>
 	</footer>
 </body>

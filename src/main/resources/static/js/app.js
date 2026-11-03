@@ -19,6 +19,8 @@ const state = {
 	filter: 'all',
 	editingId: null,
 	confirmingId: null,
+	// tarefa que acabou de ser concluída: só ela desenha o risco na próxima vez que a lista aparece
+	justCompletedId: null,
 };
 
 const elements = {
@@ -211,9 +213,10 @@ function createTodoElement(todo) {
 	const item = elements.template.content.firstElementChild.cloneNode(true);
 	item.dataset.id = todo.id;
 	item.classList.toggle('completed', todo.completed);
+	item.classList.toggle('just-done', todo.completed && todo.id === state.justCompletedId);
 
 	// textContent garante que o texto do usuário nunca é interpretado como HTML
-	item.querySelector('.todo-title').textContent = todo.title;
+	item.querySelector('.todo-title span').textContent = todo.title;
 	const description = item.querySelector('.todo-description');
 	description.textContent = todo.description ?? '';
 	description.hidden = !todo.description;
@@ -282,9 +285,12 @@ async function toggleTodo(id) {
 	try {
 		const todo = findTodo(id);
 		await api.update(id, { completed: !todo.completed, version: todo.version });
+		state.justCompletedId = todo.completed ? null : id;
 		await loadTodos();
 	} catch (error) {
 		await handleError(error);
+	} finally {
+		state.justCompletedId = null;
 	}
 }
 
