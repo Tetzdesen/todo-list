@@ -65,7 +65,22 @@ Com a aplicação rodando via `./mvnw spring-boot:run`, alterações nesses arqu
 
 Os testes usam H2, exceto `PostgresIntegrationTest` e `PostgresSessionPersistenceTest`, que sobem um PostgreSQL com [Testcontainers](https://testcontainers.com) para conferir as migrações, o schema e as sessões como em produção. Eles precisam de Docker: sem Docker, são pulados na sua máquina, mas no CI rodam sempre (e falham se não houver Docker).
 
-O GitHub Actions (`.github/workflows/ci.yml`) roda `./mvnw verify` a cada push na `main` e em cada pull request.
+#### Testes de ponta a ponta (interface web)
+
+A pasta `e2e/` tem testes com [Playwright](https://playwright.dev) que usam a interface como uma pessoa: cadastro e entrada, criar, concluir, editar e excluir tarefas, filtros, foco do teclado, anúncios para leitores de tela, tema e o layout no celular. Precisam de Node.js 18 ou mais novo.
+
+```bash
+cd e2e
+npm ci                                # na primeira vez
+npx playwright install chromium       # na primeira vez
+npm test                              # sobe a aplicação (./mvnw spring-boot:run) e roda os testes
+npm run test:headed                   # o mesmo, com o navegador visível
+npm run report                        # abre o relatório da última execução
+```
+
+Se a aplicação já estiver rodando na porta 8080, os testes usam ela. Cada teste cria a própria conta no H2, então eles não dependem uns dos outros.
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda `./mvnw verify` e depois os testes de ponta a ponta a cada push na `main` e em cada pull request. Se algum falhar, o relatório com capturas de tela fica disponível para download na execução.
 
 ## Deploy (Render)
 
@@ -259,6 +274,7 @@ curl -i -c cookies.txt -b cookies.txt -X POST http://localhost:8080/api/auth/log
 ```
 src/main/java/com/exemplo/todo
 ├── TodoApplication.java
+├── config/       WebConfig (endereço /privacidade)
 ├── controller/   TodoController, AuthController
 ├── service/      TodoService, UserService
 ├── repository/   TodoRepository, UserRepository
@@ -274,12 +290,23 @@ src/main/java/com/exemplo/todo
 src/main/resources/db/migration   migrações do Flyway (V1 schema inicial, V2 dono obrigatório, V3 versão da tarefa, V4 sessões)
 
 src/main/resources/static
-├── index.html      lista de tarefas
-├── login.html      tela de entrada (entrar, criar conta, Google)
-├── css/styles.css  estilos (tema claro e escuro)
+├── index.html       lista de tarefas
+├── login.html       tela de entrada (entrar, criar conta, Google)
+├── privacidade.html política de privacidade
+├── favicon.svg      ícone da aba
+├── css/styles.css   estilos (tema claro e escuro)
 └── js/
-    ├── api.js      chamadas à API, token CSRF e erros por campo
-    ├── app.js      lista de tarefas e sessão
-    ├── login.js    tela de entrada
-    └── theme.js    modo claro e noturno
+    ├── api.js       chamadas à API, token CSRF e erros por campo
+    ├── app.js       lista de tarefas e sessão
+    ├── login.js     tela de entrada
+    └── theme.js     modo claro e noturno
+
+e2e/                         testes de ponta a ponta (Playwright)
+├── playwright.config.js     sobe a aplicação e define os projetos computador e celular
+└── tests/
+    ├── fixtures.js          conta nova por teste e checagem de erros de JavaScript
+    ├── entrada.spec.js      cadastro, validação, mostrar a senha, entrar e sair
+    ├── tarefas.spec.js      criar, concluir, editar, excluir, filtros, foco e anúncios
+    ├── paginas.spec.js      privacidade e ícone da aba
+    └── celular.spec.js      layout, alvos de toque e campos no celular
 ```

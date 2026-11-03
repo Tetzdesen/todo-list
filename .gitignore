@@ -43,3 +43,8 @@ Thumbs.db
 .claude/
 openspec/
 .agents/
+
+### Testes de ponta a ponta (e2e/) ###
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
