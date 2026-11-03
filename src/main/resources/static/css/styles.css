@@ -13,9 +13,11 @@
 
 	--text: #1c2026;
 	--muted: #5f6873;
-	--faint: #8f97a1;
+	--faint: #69717b;
 	--border: #e1e4e8;
 	--border-strong: #cbd0d6;
+	/* borda de caixinhas e campos: contraste de 3:1 para dar para ver onde clicar */
+	--control-border: #878f99;
 	--rule: #e6e9ec;
 
 	--accent: #1f6f62;
@@ -29,7 +31,7 @@
 	/* faixa do topo e painel da entrada */
 	--band-bg: #16473e;
 	--band-text: #e8f2ef;
-	--band-muted: #86ada4;
+	--band-muted: #94b9b0;
 	--band-mark: #9fe3cf;
 
 	--focus: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
@@ -49,9 +51,10 @@
 
 	--text: #e4e6e9;
 	--muted: #a0a7b0;
-	--faint: #6f7781;
+	--faint: #858d97;
 	--border: #2a2e34;
 	--border-strong: #3a3f46;
+	--control-border: #6b737d;
 	--rule: #262a2f;
 
 	--accent: #5bb5a2;
@@ -92,6 +95,8 @@ body {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
+	/* no celular, 100vh conta a área atrás da barra do navegador; dvh acompanha a área visível */
+	min-height: 100dvh;
 }
 
 [hidden] {
@@ -110,6 +115,38 @@ body {
 :focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
+}
+
+/* o conteúdo recebe o foco pelo link "Pular para a lista"; o contorno ali só atrapalharia */
+main:focus {
+	outline: none;
+}
+
+/* escondido até receber o foco pelo teclado (é o primeiro item da página) */
+.skip-link {
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	z-index: 10;
+	padding: 8px 14px;
+	border-radius: 6px;
+	background: var(--band-mark);
+	color: var(--band-bg);
+	font-weight: 700;
+	text-decoration: none;
+	transform: translateY(-200%);
+}
+
+.skip-link:focus {
+	transform: none;
+}
+
+/* toque: sem o atraso do zoom por toque duplo */
+button,
+a,
+input,
+textarea {
+	touch-action: manipulation;
 }
 
 kbd {
@@ -365,6 +402,21 @@ kbd {
 	background: var(--hover);
 }
 
+/* retorno visual ao pressionar, também em telas de toque (onde não há hover) */
+.button:active:not(:disabled),
+.icon-button:active,
+.filter:active,
+.password-toggle:active {
+	filter: brightness(0.92);
+}
+
+:root[data-theme="dark"] .button:active:not(:disabled),
+:root[data-theme="dark"] .icon-button:active,
+:root[data-theme="dark"] .filter:active,
+:root[data-theme="dark"] .password-toggle:active {
+	filter: brightness(1.15);
+}
+
 .button:disabled {
 	opacity: 0.6;
 	cursor: progress;
@@ -482,11 +534,12 @@ kbd {
 	width: 100%;
 	height: 40px;
 	padding: 0 12px;
-	border: 1px solid var(--border-strong);
+	border: 1px solid var(--control-border);
 	border-radius: 6px;
 	background: var(--input-bg);
 	color: var(--text);
 	font: inherit;
+	font-size: 16px;
 	transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
@@ -525,6 +578,35 @@ textarea.input {
 
 .field-error:empty {
 	display: none;
+}
+
+/* senha com o botão Mostrar dentro do campo */
+.password-field {
+	position: relative;
+}
+
+.password-field .input {
+	padding-right: 84px;
+}
+
+.password-toggle {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	height: 32px;
+	padding: 0 10px;
+	border: none;
+	border-radius: 4px;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.password-toggle:hover {
+	background: var(--hover);
 }
 
 .form-actions {
@@ -574,7 +656,7 @@ textarea.input {
 	width: 22px;
 	height: 22px;
 	margin: 0;
-	border: 2px solid var(--border-strong);
+	border: 2px solid var(--control-border);
 	border-radius: 5px;
 	background: var(--surface);
 	cursor: pointer;
@@ -634,7 +716,7 @@ textarea.input {
 	width: 22px;
 	height: 22px;
 	margin-top: 5px;
-	border: 2px dashed var(--border-strong);
+	border: 2px dashed var(--control-border);
 	border-radius: 5px;
 }
 
@@ -670,7 +752,7 @@ textarea.input {
 .composer-notes {
 	margin: 2px 0 2px;
 	color: var(--muted);
-	font-size: 15px;
+	font-size: 16px;
 	field-sizing: content;
 	min-height: 1.5em;
 }
@@ -941,6 +1023,7 @@ textarea.input {
 	display: grid;
 	grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
 	min-height: 100vh;
+	min-height: 100dvh;
 }
 
 /* painel da lista */
@@ -1194,8 +1277,14 @@ textarea.input {
 		padding: 10px 12px 22px 16px;
 	}
 
+	/* sem espaço para o nome: ele some da tela, mas continua sendo lido pelos leitores de tela */
 	.account-name {
-		display: none;
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
 	}
 
 	.page-header {
@@ -1241,6 +1330,37 @@ textarea.input {
 	}
 }
 
+/* ---------- Telas de toque: alvos de pelo menos 44 px ---------- */
+
+@media (pointer: coarse) {
+	.icon-button,
+	.band .button-small {
+		min-width: 44px;
+		height: 44px;
+	}
+
+	.filter {
+		min-height: 44px;
+	}
+
+	.button-small {
+		height: 40px;
+	}
+
+	.password-toggle {
+		top: 0;
+		height: 40px;
+	}
+
+	.check::before {
+		inset: -11px;
+	}
+
+	.form-actions {
+		gap: 12px;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.hero-task *,
 	.todo.just-done .todo-title span {
@@ -1248,6 +1368,10 @@ textarea.input {
 	}
 
 	.progress-bar {
+		transition: none;
+	}
+
+	.skip-link {
 		transition: none;
 	}
 }

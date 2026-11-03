@@ -8,6 +8,7 @@ const elements = {
 	errorBanner: document.querySelector('#error-banner'),
 	errorMessage: document.querySelector('#error-message'),
 	errorClose: document.querySelector('#error-close'),
+	passwordToggles: document.querySelectorAll('[data-password-toggle]'),
 };
 
 // ---------- Mensagens de erro ----------
@@ -22,6 +23,21 @@ function hideBanner() {
 	elements.errorMessage.textContent = '';
 }
 
+// ---------- Mostrar ou ocultar a senha ----------
+
+function setPasswordVisible(button, visible) {
+	const input = document.getElementById(button.getAttribute('aria-controls'));
+	input.type = visible ? 'text' : 'password';
+	button.textContent = visible ? 'Ocultar' : 'Mostrar';
+	button.setAttribute('aria-label', visible ? 'Ocultar senha' : 'Mostrar senha');
+}
+
+function hidePasswords() {
+	for (const button of elements.passwordToggles) {
+		setPasswordVisible(button, false);
+	}
+}
+
 // ---------- Entrar ou criar conta ----------
 
 // cada modo tem título, formulário e link de troca próprios; só os do modo escolhido ficam visíveis
@@ -33,6 +49,7 @@ function showMode(mode) {
 		document.getElementById(`switch-to-${name}`).hidden = active;
 	}
 	hideBanner();
+	hidePasswords();
 	const form = document.getElementById(`${mode}-form`);
 	clearFieldErrors(form);
 	form.querySelector('input').focus();
@@ -75,6 +92,13 @@ for (const button of elements.switches) {
 }
 
 elements.errorClose.addEventListener('click', hideBanner);
+
+for (const button of elements.passwordToggles) {
+	button.addEventListener('click', () => {
+		const input = document.getElementById(button.getAttribute('aria-controls'));
+		setPasswordVisible(button, input.type === 'password');
+	});
+}
 
 elements.loginForm.addEventListener('submit', (event) => {
 	event.preventDefault();

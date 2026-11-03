@@ -4,6 +4,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Tarefas</title>
+	<meta name="theme-color" content="#16473e">
+	<link rel="icon" href="favicon.svg" type="image/svg+xml">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Source+Sans+3:wght@400;600;700&display=swap">
@@ -14,6 +16,7 @@
 <body>
 	<!-- só aparece depois que app.js confirma a sessão -->
 	<div class="page" hidden>
+		<a href="#conteudo" class="skip-link">Pular para a lista</a>
 		<header class="band">
 			<div class="band-inner">
 				<div class="band-top">
@@ -49,7 +52,7 @@
 			</div>
 		</header>
 
-		<main class="container">
+		<main id="conteudo" class="container" tabindex="-1">
 			<div id="error-banner" class="error-banner" role="alert" hidden>
 				<span id="error-message"></span>
 				<button type="button" id="error-close" class="button button-ghost button-small" aria-label="Fechar aviso">Fechar</button>
@@ -86,7 +89,7 @@
 							Concluídas <span class="count" data-count-for="completed"></span>
 						</button>
 					</nav>
-					<span class="toolbar-hint"><kbd>N</kbd> nova tarefa</span>
+					<span class="toolbar-hint"><kbd>Alt</kbd> + <kbd>N</kbd> nova tarefa</span>
 				</div>
 
 				<ul id="todo-list" class="todo-list"></ul>
@@ -102,6 +105,9 @@
 			<a href="privacidade.html">Privacidade</a>
 		</footer>
 	</div>
+
+	<!-- resultado de cada ação, lido pelo leitor de tela sem mover o foco (veja announce em app.js) -->
+	<p id="status" class="visually-hidden" role="status"></p>
 
 	<template id="todo-template">
 		<li class="todo" data-mode="view">

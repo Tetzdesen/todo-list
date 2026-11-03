@@ -4,6 +4,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Entrar · Tarefas</title>
+	<meta name="theme-color" content="#16473e">
+	<link rel="icon" href="favicon.svg" type="image/svg+xml">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Source+Sans+3:wght@400;600;700&display=swap">
@@ -78,7 +80,10 @@
 					</div>
 					<div class="field">
 						<label for="login-password" class="label">Senha</label>
-						<input id="login-password" name="password" type="password" class="input" autocomplete="current-password">
+						<div class="password-field">
+							<input id="login-password" name="password" type="password" class="input" autocomplete="current-password">
+							<button type="button" class="password-toggle" data-password-toggle aria-controls="login-password" aria-label="Mostrar senha">Mostrar</button>
+						</div>
 						<p class="field-error" data-error-for="password"></p>
 					</div>
 					<button type="submit" class="button button-primary button-block">Entrar</button>
@@ -97,7 +102,10 @@
 					</div>
 					<div class="field">
 						<label for="register-password" class="label">Senha</label>
-						<input id="register-password" name="password" type="password" class="input" autocomplete="new-password" aria-describedby="register-password-hint">
+						<div class="password-field">
+							<input id="register-password" name="password" type="password" class="input" autocomplete="new-password" aria-describedby="register-password-hint">
+							<button type="button" class="password-toggle" data-password-toggle aria-controls="register-password" aria-label="Mostrar senha">Mostrar</button>
+						</div>
 						<p id="register-password-hint" class="hint">Use pelo menos 8 caracteres.</p>
 						<p class="field-error" data-error-for="password"></p>
 					</div>

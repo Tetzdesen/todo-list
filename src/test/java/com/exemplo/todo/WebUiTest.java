@@ -69,6 +69,13 @@ class WebUiTest {
 	}
 
 	@Test
+	void deveServirIconeDaAbaSemLogin() throws Exception {
+		mockMvc.perform(get("/favicon.svg"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith("image/svg+xml"));
+	}
+
+	@Test
 	void deveServirScriptsDaTelaDeEntradaSemLogin() throws Exception {
 		mockMvc.perform(get("/js/login.js"))
 				.andExpect(status().isOk())

@@ -21,6 +21,10 @@ const state = {
 	confirmingId: null,
 	// tarefa que acabou de ser concluída: só ela desenha o risco na próxima vez que a lista aparece
 	justCompletedId: null,
+	// tarefas com a marcação a caminho do servidor: um segundo clique antes da resposta é ignorado
+	toggling: new Set(),
+	// onde o foco do teclado deve ficar depois que a lista for redesenhada ({ id, selector })
+	focusAfterRender: null,
 };
 
 const elements = {
@@ -44,6 +48,7 @@ const elements = {
 	errorBanner: document.querySelector('#error-banner'),
 	errorMessage: document.querySelector('#error-message'),
 	errorClose: document.querySelector('#error-close'),
+	status: document.querySelector('#status'),
 };
 
 // ---------- Comunicação com a API ----------
@@ -78,6 +83,24 @@ function showBanner(message) {
 function hideBanner() {
 	elements.errorBanner.hidden = true;
 	elements.errorMessage.textContent = '';
+}
+
+// ---------- Anúncios para leitores de tela ----------
+
+// O resultado de cada ação vai para uma região role="status": o leitor de tela lê sem tirar o foco do lugar.
+// O texto é limpo antes, para a mesma frase ser lida de novo se a ação se repetir.
+function announce(message) {
+	elements.status.textContent = '';
+	setTimeout(() => {
+		elements.status.textContent = message;
+	}, 50);
+}
+
+// "3 de 5 concluídas", a mesma frase do progresso no topo
+function progressText() {
+	const done = state.todos.filter((todo) => todo.completed).length;
+	const total = state.todos.length;
+	return `${done} de ${total} ${total === 1 ? 'concluída' : 'concluídas'}`;
 }
 
 // ---------- Sessão ----------
@@ -170,6 +193,10 @@ function render() {
 	// em "Todas", as feitas vêm depois das pendentes
 	const visible = { all: [...pending, ...done], pending, completed: done }[state.filter];
 
+	// redesenhar a lista recria os elementos: sem isto, o foco do teclado voltaria para o início da página
+	const focus = state.focusAfterRender ?? focusInList();
+	state.focusAfterRender = null;
+
 	elements.list.replaceChildren(...visible.map(createTodoElement));
 	elements.list.hidden = visible.length === 0;
 	elements.emptyMessage.hidden = visible.length > 0;
@@ -184,12 +211,45 @@ function render() {
 	for (const button of elements.filters) {
 		button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter));
 	}
+
+	restoreFocus(focus);
+}
+
+// O controle da lista que está com o foco agora, descrito de um jeito que sobrevive ao redesenho
+function focusInList() {
+	const active = document.activeElement;
+	if (!elements.list.contains(active)) {
+		return null;
+	}
+	const id = Number(active.closest('.todo').dataset.id);
+	if (active.matches('.todo-toggle')) {
+		return { id, selector: '.todo-toggle' };
+	}
+	return active.dataset.action ? { id, selector: `[data-action="${active.dataset.action}"]` } : null;
+}
+
+// Devolve o foco ao mesmo controle da mesma tarefa. Se ela saiu da lista (outro filtro), o foco vai para o
+// filtro ativo; com { newTask: true }, vai para o campo de nova tarefa.
+function restoreFocus(focus) {
+	if (!focus) {
+		return;
+	}
+	if (focus.newTask) {
+		elements.createForm.elements.title.focus();
+		return;
+	}
+	const target = elements.list.querySelector(`[data-id="${focus.id}"] ${focus.selector}`);
+	if (target && target.offsetParent !== null) {
+		target.focus();
+	} else {
+		document.querySelector('.filter[aria-pressed="true"]').focus();
+	}
 }
 
 // "1 de 3 concluídas" com a barra proporcional; escondido enquanto não há tarefas
 function showProgress(done, total) {
 	elements.progress.hidden = total === 0;
-	elements.progressLabel.textContent = `${done} de ${total} ${total === 1 ? 'concluída' : 'concluídas'}`;
+	elements.progressLabel.textContent = progressText();
 	elements.progressBar.style.width = total === 0 ? '0' : `${(done / total) * 100}%`;
 }
 
@@ -197,7 +257,7 @@ function startOfDay(date) {
 	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-// "Hoje", "Ontem" ou "18 de out." (a data completa fica na dica do elemento)
+// "Hoje", "Ontem" ou "18 de out." (a data completa fica na dica e no texto para leitores de tela)
 function describeCreation(date) {
 	const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
 	if (days === 0) {
@@ -222,14 +282,26 @@ function createTodoElement(todo) {
 	description.hidden = !todo.description;
 	const created = item.querySelector('.todo-created');
 	const createdAt = new Date(todo.createdAt);
+	const fullDate = `Criada em ${fullDateFormat.format(createdAt)}`;
 	created.dateTime = todo.createdAt;
-	created.textContent = describeCreation(createdAt);
-	created.title = `Criada em ${fullDateFormat.format(createdAt)}`;
+	created.title = fullDate;
+	const shortText = document.createElement('span');
+	shortText.ariaHidden = 'true';
+	shortText.textContent = describeCreation(createdAt);
+	const fullText = document.createElement('span');
+	fullText.className = 'visually-hidden';
+	fullText.textContent = fullDate;
+	created.replaceChildren(shortText, fullText);
 	item.querySelector('.todo-confirm-title').textContent = todo.title;
 
+	// os nomes acessíveis citam a tarefa: numa lista, "Editar tarefa" repetido não diz qual é
 	const toggle = item.querySelector('.todo-toggle');
 	toggle.checked = todo.completed;
-	toggle.setAttribute('aria-label', todo.completed ? 'Marcar como pendente' : 'Marcar como concluída');
+	toggle.setAttribute('aria-label', todo.completed
+		? `Marcar “${todo.title}” como pendente`
+		: `Marcar “${todo.title}” como concluída`);
+	item.querySelector('[data-action="edit"]').setAttribute('aria-label', `Editar “${todo.title}”`);
+	item.querySelector('[data-action="delete"]').setAttribute('aria-label', `Excluir “${todo.title}”`);
 
 	if (todo.id === state.editingId) {
 		item.dataset.mode = 'edit';
@@ -256,15 +328,34 @@ function readForm(form) {
 	};
 }
 
+// enquanto o servidor responde, o botão de envio fica desativado: um segundo clique não duplica a ação
+async function whileSaving(form, action) {
+	const button = form.querySelector('[type="submit"]');
+	button.disabled = true;
+	try {
+		await action();
+	} finally {
+		button.disabled = false;
+	}
+}
+
 async function createTodo(event) {
 	event.preventDefault();
 	const form = elements.createForm;
+	if (form.querySelector('[type="submit"]').disabled) {
+		return;
+	}
+	await whileSaving(form, () => saveNewTodo(form));
+}
+
+async function saveNewTodo(form) {
 	try {
-		await api.create(readForm(form));
+		const created = await api.create(readForm(form));
 		form.reset();
 		clearFieldErrors(form);
 		await loadTodos();
 		form.elements.title.focus();
+		announce(`Tarefa “${created.title}” adicionada. ${progressText()}.`);
 	} catch (error) {
 		await handleError(error, form);
 	}
@@ -275,30 +366,43 @@ async function saveEdit(form, id) {
 	try {
 		await api.update(id, { ...readForm(form), version: todo.version });
 		state.editingId = null;
+		state.focusAfterRender = { id, selector: '[data-action="edit"]' };
 		await loadTodos();
+		announce('Alterações salvas.');
 	} catch (error) {
 		await handleError(error, form);
 	}
 }
 
 async function toggleTodo(id) {
+	state.toggling.add(id);
 	try {
 		const todo = findTodo(id);
 		await api.update(id, { completed: !todo.completed, version: todo.version });
 		state.justCompletedId = todo.completed ? null : id;
 		await loadTodos();
+		announce(`“${todo.title}” ${todo.completed ? 'voltou para pendentes' : 'concluída'}. ${progressText()}.`);
 	} catch (error) {
 		await handleError(error);
 	} finally {
 		state.justCompletedId = null;
+		state.toggling.delete(id);
 	}
 }
 
 async function removeTodo(id) {
 	try {
+		const todo = findTodo(id);
 		await api.remove(id);
 		state.confirmingId = null;
+		// o foco passa para a tarefa que ocupa o lugar da excluída (ou a anterior); sem nenhuma, para a nova tarefa
+		const item = elements.list.querySelector(`[data-id="${id}"]`);
+		const neighbor = item?.nextElementSibling ?? item?.previousElementSibling;
+		state.focusAfterRender = neighbor
+			? { id: Number(neighbor.dataset.id), selector: '.todo-toggle' }
+			: { newTask: true };
 		await loadTodos();
+		announce(`“${todo.title}” excluída. ${progressText()}.`);
 	} catch (error) {
 		await handleError(error);
 	}
@@ -307,13 +411,27 @@ async function removeTodo(id) {
 function startEdit(id) {
 	state.editingId = id;
 	state.confirmingId = null;
+	state.focusAfterRender = { id, selector: 'input[name="title"]' };
 	render();
-	elements.board.querySelector(`[data-id="${id}"] input[name="title"]`).focus();
 }
 
+// abre a confirmação de exclusão com o foco em "Cancelar", a opção segura
 function setConfirming(id) {
 	state.confirmingId = id;
 	state.editingId = null;
+	state.focusAfterRender = { id, selector: '[data-action="cancel-delete"]' };
+	render();
+}
+
+// fecha a edição ou a confirmação e devolve o foco ao botão que a abriu
+function closeTodoPanel() {
+	if (state.editingId !== null) {
+		state.focusAfterRender = { id: state.editingId, selector: '[data-action="edit"]' };
+	} else if (state.confirmingId !== null) {
+		state.focusAfterRender = { id: state.confirmingId, selector: '[data-action="delete"]' };
+	}
+	state.editingId = null;
+	state.confirmingId = null;
 	render();
 }
 
@@ -346,8 +464,7 @@ elements.board.addEventListener('click', (event) => {
 			startEdit(id);
 			break;
 		case 'cancel-edit':
-			state.editingId = null;
-			render();
+			closeTodoPanel();
 			break;
 		case 'delete':
 			setConfirming(id);
@@ -356,38 +473,46 @@ elements.board.addEventListener('click', (event) => {
 			removeTodo(id);
 			break;
 		case 'cancel-delete':
-			setConfirming(null);
+			closeTodoPanel();
 			break;
 	}
 });
 
 elements.board.addEventListener('change', (event) => {
 	if (event.target.matches('.todo-toggle')) {
-		toggleTodo(Number(event.target.closest('.todo').dataset.id));
+		const id = Number(event.target.closest('.todo').dataset.id);
+		if (state.toggling.has(id)) {
+			// ainda esperando a resposta anterior: desfaz o clique na tela e não manda outra alteração
+			event.target.checked = !event.target.checked;
+			return;
+		}
+		toggleTodo(id);
 	}
 });
 
 elements.board.addEventListener('submit', (event) => {
 	if (event.target.matches('.todo-edit')) {
 		event.preventDefault();
-		saveEdit(event.target, Number(event.target.closest('.todo').dataset.id));
+		const form = event.target;
+		if (!form.querySelector('[type="submit"]').disabled) {
+			whileSaving(form, () => saveEdit(form, Number(form.closest('.todo').dataset.id)));
+		}
 	}
 });
 
-// N (ou /) começa uma tarefa nova; Esc fecha a tarefa aberta, a remoção em andamento ou a nova tarefa
+// Alt+N começa uma tarefa nova; Esc fecha a tarefa aberta, a remoção em andamento ou a nova tarefa.
+// O atalho usa Alt para não disparar sem querer (atalhos de uma tecla só atrapalham quem usa entrada por voz).
 document.addEventListener('keydown', (event) => {
 	if (event.key === 'Escape') {
 		if (state.editingId !== null || state.confirmingId !== null) {
-			state.editingId = null;
-			state.confirmingId = null;
-			render();
+			closeTodoPanel();
 		} else if (elements.createForm.contains(document.activeElement)) {
 			document.activeElement.blur();
 		}
 		return;
 	}
-	const typing = event.target instanceof Element && event.target.closest('input, textarea, [contenteditable]');
-	if (!typing && !event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'n' || event.key === '/')) {
+	// event.code: no Mac, Option+N produz outro caractere em event.key
+	if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyN') {
 		event.preventDefault();
 		elements.createForm.elements.title.focus();
 	}
