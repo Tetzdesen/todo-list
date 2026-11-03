@@ -13,8 +13,8 @@ module.exports = defineConfig({
 	reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
 	use: {
 		baseURL: BASE_URL,
-		// o navegador manda Accept-Language: pt-BR, e as mensagens de validação do servidor vêm em português
-		locale: 'pt-BR',
+		// o navegador fica em inglês de propósito: as mensagens de validação devem vir em português mesmo assim
+		locale: 'en-US',
 		trace: 'retain-on-failure',
 		screenshot: 'only-on-failure',
 	},

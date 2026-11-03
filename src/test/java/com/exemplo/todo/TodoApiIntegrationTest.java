@@ -169,6 +169,23 @@ class TodoApiIntegrationTest {
 	}
 
 	// cadastra um usuário novo e devolve a sessão já autenticada
+	// a interface é só em português: as mensagens de validação não podem seguir o idioma do navegador
+	@Test
+	void deveResponderErrosDeValidacaoEmPortuguesQualquerQueSejaOIdiomaDoNavegador() throws Exception {
+		MockHttpSession session = registrar("Ana");
+		RequestPostProcessor csrf = realCsrf(mockMvc);
+
+		for (String idioma : new String[] { "en-US", "fr-FR", "pt-BR" }) {
+			mockMvc.perform(post("/api/todos").session(session).with(csrf)
+					.header("Accept-Language", idioma)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"title\": \" \"}"))
+					.andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.fieldErrors[0].field").value("title"))
+					.andExpect(jsonPath("$.fieldErrors[0].message").value("não deve estar em branco"));
+		}
+	}
+
 	private MockHttpSession registrar(String nome) throws Exception {
 		MockHttpSession session = new MockHttpSession();
 		String email = nome.toLowerCase() + "-" + UUID.randomUUID().toString().substring(0, 8) + "@exemplo.com";
